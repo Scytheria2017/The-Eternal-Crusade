@@ -322,7 +322,7 @@ void WorldSession::SendPetitionQueryOpcode(ObjectGuid petitionguid)
 
 void WorldSession::HandlePetitionRenameGuild(WorldPacket& recvData)
 {
-    TC_LOG_DEBUG("network", "Received opcode MSG_PETITION_RENAME");   // ok
+    TC_LOG_DEBUG("network", "Received opcode MSG_PETITION_RENAME");
 
     ObjectGuid petitionGuid;
     std::string newName;
