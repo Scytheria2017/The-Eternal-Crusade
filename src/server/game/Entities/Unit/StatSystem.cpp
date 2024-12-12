@@ -29,7 +29,8 @@
 // Player::UpdateAttackPowerAndDamage           -- Major simplicity changes - MAP = Strength - 10, RAP = Agility - 10
 // Player::UpdateShieldBlockValue               -- No changes, only calls GetShieldBlockValue
 // Player::CalculateMinMaxDamage                -- Some simplification, feral forms = 1.25 to 1.50 * normal damage
-// 467
+// Player::UpdateDefenseBonusesMod              -- No changes
+// 449
 // ----------------------------------------------------------------------------------------------------------------------------
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
@@ -49,7 +50,6 @@ inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
             amount = baseValue;
         baseValue -= amount;
     }
-    
     return apply;
 }
 
@@ -67,7 +67,6 @@ void Unit::UpdateDamagePhysical(WeaponAttackType attType)
 {
     float totalMin = 0.f;
     float totalMax = 0.f;
-
     float tmpMin, tmpMax;
     for (uint8 i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
     {
@@ -75,7 +74,6 @@ void Unit::UpdateDamagePhysical(WeaponAttackType attType)
         totalMin += tmpMin;
         totalMax += tmpMax;
     }
-
     switch (attType)
     {
         case BASE_ATTACK:
@@ -100,10 +98,8 @@ bool Player::UpdateStats(Stats stat)
 {
     if (stat > STAT_SPIRIT)
         return false;
-
     float value  = GetTotalStatValue(stat);
     SetStat(stat, int32(value));
-
     switch (stat)
     {
         case STAT_STRENGTH:
@@ -140,7 +136,6 @@ bool Player::UpdateStats(Stats stat)
         default:
             break;
     }
-
     return true;
 }
 
@@ -148,10 +143,7 @@ bool Player::UpdateStats(Stats stat)
 
 void Player::ApplySpellPowerBonus(int32 amount, bool apply)
 {
-    //apply = _ModifyUInt32(apply, m_baseSpellPower, amount);
-    //ApplyModUInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, amount, apply);
-    //for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
-        //ApplyModUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, amount, apply);
+    // Deprecated function
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------
@@ -160,29 +152,16 @@ void Player::UpdateSpellDamageAndHealingBonus()
 {
     float intellect = GetStat(STAT_INTELLECT);
     float spirit = GetStat(STAT_SPIRIT);
-    float spellbonus = 1.0f + (intellect - 20.0f);
-    if (spellbonus < 1.0f)
-        spellbonus = 1.0f;
-    float healbonus = 1.0f + (spirit - 20.0f);
-    if (healbonus < 1.0f)
-        healbonus = 1.0f;
+    float spellbonus = intellect - 20.0f;
+    if (spellbonus < 0.0f)
+        spellbonus = 0.0f;
+    float healbonus = spirit - 20.0f;
+    if (healbonus < 0.0f)
+        healbonus = 0.0f;
     for (uint16 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
     {
         SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, SpellBaseDamageBonusDone(SpellSchoolMask(1 << i)) - GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + i));
     }
-        
-    //SetStatInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_ALL));
-    //Unit::AuraEffectList const& modDamageAuras = GetAuraEffectsByType(SPELL_AURA_MOD_DAMAGE_DONE);
-    //for (uint16 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
-    //{
-        //SetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + i, std::accumulate(modDamageAuras.begin(), modDamageAuras.end(), 0, [i](int32 negativeMod, AuraEffect const* aurEff)
-        //{
-            //if (aurEff->GetAmount() < 0 && aurEff->GetMiscValue() & (1 << i))
-                //negativeMod += aurEff->GetAmount();
-            //return negativeMod;
-        //}));
-        //SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, SpellBaseDamageBonusDone(SpellSchoolMask(1 << i)) - GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + i));
-    //}
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------
@@ -194,15 +173,12 @@ bool Player::UpdateAllStats()
         float value = GetTotalStatValue(Stats(i));
         SetStat(Stats(i), int32(value));
     }
-
     UpdateArmor();
     UpdateAttackPowerAndDamage(false);
     UpdateAttackPowerAndDamage(true);
     UpdateMaxHealth();
-
     for (uint8 i = POWER_MANA; i < MAX_POWERS; ++i)
         UpdateMaxPower(Powers(i));
-
     UpdateAllRatings();
     UpdateAllCritPercentages();
     UpdateAllSpellCritChances();
@@ -217,7 +193,6 @@ bool Player::UpdateAllStats()
     UpdateExpertise(OFF_ATTACK);
     RecalculateRating(CR_ARMOR_PENETRATION);
     UpdateAllResistances();
-
     return true;
 }
 
@@ -246,7 +221,6 @@ void Player::UpdateResistances(uint32 school)
 
 void Player::UpdateArmor()
 {
-    UnitMods unitMod = UNIT_MOD_ARMOR;
     float value = GetFlatModifierValue(UNIT_MOD_ARMOR, BASE_VALUE);
     SetArmor(int32(value));
     UpdateSpeed(MOVE_WALK);
@@ -263,7 +237,6 @@ float Player::GetHealthBonusFromStamina()
     float stamina = GetStat(STAT_STAMINA);
     float baseStam = std::min(20.0f, stamina);
     float moreStam = stamina - baseStam;
-    
     return baseStam + (moreStam*10.0f);
 }
 
@@ -274,7 +247,6 @@ float Player::GetManaBonusFromIntellect()
     float intellect = GetStat(STAT_INTELLECT);
     float baseInt = std::min(20.0f, intellect);
     float moreInt = intellect - baseInt;
-    
     return baseInt + (moreInt * 10.0f);
 }
 
@@ -296,7 +268,6 @@ void Player::UpdateMaxPower(Powers power)
 {
     UnitMods unitMod = UnitMods(UNIT_MOD_POWER_START + AsUnderlyingType(power));
     float bonusPower = 0.0f;  
-
     if (power == POWER_MANA)
     {
 
@@ -306,7 +277,6 @@ void Player::UpdateMaxPower(Powers power)
         if (bonusPower < 0.0f)
             bonusPower = 0.0f;    
     }
-
     if (power == POWER_ENERGY)
     {
         bonusPower = GetStat(STAT_STAMINA) - 20.0f;
@@ -315,7 +285,6 @@ void Player::UpdateMaxPower(Powers power)
         if (bonusPower < 0.0f)
             bonusPower = 0.0f;        
     }
-
     float value = GetFlatModifierValue(unitMod, BASE_VALUE) + GetCreatePowerValue(power);
     value *= GetPctModifierValue(unitMod, BASE_PCT);
     value += GetFlatModifierValue(unitMod, TOTAL_VALUE) +  bonusPower;
@@ -336,9 +305,7 @@ void Player::ApplyFeralAPBonus(int32 amount, bool apply)
 void Player::UpdateAttackPowerAndDamage(bool ranged)
 {
     float val2 = 0.0f;
-
     UnitMods unitMod = ranged ? UNIT_MOD_ATTACK_POWER_RANGED : UNIT_MOD_ATTACK_POWER;
-
     if (ranged)
     {
         val2 = GetStat(STAT_AGILITY) - 10.0f;
@@ -351,11 +318,9 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
         if (val2 < 10.0f)
             val2 = 10.0f;
     }
-
     SetStatFlatModifier(unitMod, BASE_VALUE, val2);
     float base_attPower  = GetFlatModifierValue(unitMod, BASE_VALUE) * GetPctModifierValue(unitMod, BASE_PCT);
     float attPowerMod = GetFlatModifierValue(unitMod, TOTAL_VALUE);
-
     if (ranged)
     {
         if ((GetClassMask() & CLASSMASK_WAND_USERS) == 0)
@@ -371,9 +336,7 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
         for (AuraEffect const* aurEff : mAPbyStat)
             attPowerMod += CalculatePct(GetStat(Stats(aurEff->GetMiscValue())), aurEff->GetAmount());
     }
-
     float attPowerMultiplier = GetPctModifierValue(unitMod, TOTAL_PCT) - 1.0f;
-
     if (ranged)
     {
         SetRangedAttackPower(int32(base_attPower));
@@ -392,7 +355,6 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
             SetAttackPowerModNeg(int32(attPowerMod));
         SetAttackPowerMultiplier(attPowerMultiplier);
     }
-
     if (ranged)
     {
         UpdateDamagePhysical(RANGED_ATTACK);
@@ -428,9 +390,7 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
         }
         return;
     }
-
     UnitMods unitMod;
-
     switch (attType)
     {
         case BASE_ATTACK:
@@ -444,19 +404,14 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
             unitMod = UNIT_MOD_DAMAGE_RANGED;
             break;
     }
-
     float const attackPowerMod = std::max(GetAPMultiplier(attType, normalized), 0.25f);
-
     float baseValue  = GetFlatModifierValue(unitMod, BASE_VALUE);
     baseValue += GetTotalAttackPowerValue(attType) / 14.0f * attackPowerMod;
-
     float basePct    = GetPctModifierValue(unitMod, BASE_PCT);
     float totalValue = GetFlatModifierValue(unitMod, TOTAL_VALUE);
     float totalPct   = addTotalPct ? GetPctModifierValue(unitMod, TOTAL_PCT) : 1.0f;
-
     float weaponMinDamage = GetWeaponDamageRange(attType, MINDAMAGE);
     float weaponMaxDamage = GetWeaponDamageRange(attType, MAXDAMAGE);
-
     if (IsInFeralForm())
     {
         weaponMinDamage = 1.25f * attackPowerMod;
@@ -470,7 +425,6 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
             maxDamage = 0.f;
             return;
         }
-
         weaponMinDamage = BASE_MINDAMAGE;
         weaponMaxDamage = BASE_MAXDAMAGE;
     }
@@ -479,7 +433,6 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
         weaponMinDamage += GetAmmoDPS() * attackPowerMod;
         weaponMaxDamage += GetAmmoDPS() * attackPowerMod;
     }
-
     minDamage = ((weaponMinDamage + baseValue) * basePct + totalValue) * totalPct;
     maxDamage = ((weaponMaxDamage + baseValue) * basePct + totalValue) * totalPct;
 }
@@ -492,6 +445,8 @@ void Player::UpdateDefenseBonusesMod()
     UpdateParryPercentage();
     UpdateDodgePercentage();
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateBlockPercentage()
 {
