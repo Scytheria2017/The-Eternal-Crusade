@@ -8513,9 +8513,9 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
     float stack_bonus     = 1.0f;
     float non_stack_bonus = 1.0f;
 
-    armor = 0.0f;
-    strength = 0.0f;
-    encumbrance = 1.0f;
+    float armor = 0.0f;
+    float strength = 0.0f;
+    float encumbrance = 1.0f;
 
     if (GetTypeId() == TYPEID_PLAYER)
     {
@@ -8539,7 +8539,6 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
             encumbrance = 1.0f;
         case MOVE_RUN_BACK:
         case MOVE_SWIM_BACK:
-            break;
         case MOVE_WALK:
         case MOVE_RUN:
         {
@@ -8561,7 +8560,6 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
         case MOVE_SWIM:
         {
             main_speed_mod  = GetMaxPositiveAuraModifier(SPELL_AURA_MOD_INCREASE_SWIM_SPEED);
-            break;
         }
         case MOVE_FLIGHT:
         {
