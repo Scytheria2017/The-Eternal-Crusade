@@ -158,9 +158,10 @@ void Player::UpdateSpellDamageAndHealingBonus()
     float healbonus = spirit - 20.0f;
     if (healbonus < 0.0f)
         healbonus = 0.0f;
+    SetStatInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, healbonus);
     for (uint16 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
     {
-        SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, SpellBaseDamageBonusDone(SpellSchoolMask(1 << i)) - GetInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_NEG + i));
+        SetStatInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, spellbonus);
     }
 }
 
