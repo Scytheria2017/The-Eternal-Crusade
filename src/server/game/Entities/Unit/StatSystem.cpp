@@ -163,7 +163,10 @@ bool Player::UpdateStats(Stats stat)
 
 void Player::ApplySpellPowerBonus(int32 amount, bool apply)
 {
-    // Deprecated function
+    apply = _ModifyUInt32(apply, m_baseSpellPower, amount);
+    ApplyModUInt32Value(PLAYER_FIELD_MOD_HEALING_DONE_POS, amount, apply);
+    for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+        ApplyModUInt32Value(PLAYER_FIELD_MOD_DAMAGE_DONE_POS + i, amount, apply);
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------
@@ -249,6 +252,7 @@ void Player::UpdateArmor()
     UpdateSpeed(MOVE_RUN_BACK);
     UpdateSpeed(MOVE_SWIM);
     UpdateSpeed(MOVE_SWIM_BACK);
+    UpdateDodgePercentage();
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------
