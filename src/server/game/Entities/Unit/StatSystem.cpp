@@ -36,9 +36,14 @@
 // const m_diminishing_k                        -- No changes (probably deprecated)
 // CalculateDiminishingReturns                  -- No changes (probably deprecated)
 // const miss_cap                               -- No changes (probably deprecated)
-// Player::GetMissPercentageFromDefense         -- WIP
+// Player::GetMissPercentageFromDefense         -- No changes (probably deprecated)
+// const parry_cap                              -- No changes (probably deprecated)
+// Player::UpdateParryPercentage                -- (if can parry) 5+((agility-20)/5)
+// const dodge_cap                              -- No changes (probably deprecated)
+// Player::UpdateDodgePercentage                -- Now based on Agility and affected by Armor
 //
-// 575
+//
+// 660
 // ----------------------------------------------------------------------------------------------------------------------------
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
@@ -114,6 +119,7 @@ bool Player::UpdateStats(Stats stat)
             UpdateBlockPercentage();
             UpdateShieldBlockValue();
             UpdateAttackPowerAndDamage(false);
+            UpdateAllCritPercentages();
             UpdateSpeed(MOVE_WALK);
             UpdateSpeed(MOVE_RUN);
             UpdateSpeed(MOVE_RUN_BACK);
@@ -575,92 +581,84 @@ float const miss_cap[MAX_CLASSES] =
 float Player::GetMissPercentageFromDefense() const
 {
     float diminishing = 0.0f, nondiminishing = 0.0f;
-    // Modify value from defense skill (only bonus from defense rating diminishes)
     nondiminishing += (int32(GetSkillValue(SKILL_DEFENSE)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
     diminishing += (GetRatingBonusValue(CR_DEFENSE_SKILL) * 0.04f);
-
-    // apply diminishing formula to diminishing miss chance
     return CalculateDiminishingReturns(miss_cap, GetClass(), nondiminishing, diminishing);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 float const parry_cap[MAX_CLASSES] =
 {
-    47.003525f,     // Warrior
-    47.003525f,     // Paladin
-    145.560408f,    // Hunter
-    145.560408f,    // Rogue
+    0.0f,           // Warrior
+    0.0f,           // Paladin
+    0.0f,           // Hunter
+    0.0f,           // Rogue
     0.0f,           // Priest
-    47.003525f,     // DK
-    145.560408f,    // Shaman
+    0.0f,           // DK
+    0.0f,           // Shaman
     0.0f,           // Mage
     0.0f,           // Warlock
     0.0f,           // ??
     0.0f            // Druid
 };
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::UpdateParryPercentage()
 {
-    // No parry
     float value = 0.0f;
-    uint32 pclass = GetClass() - 1;
-    if (CanParry() && parry_cap[pclass] > 0.0f)
+    if (CanParry())
     {
-        float nondiminishing  = 5.0f;
-        // Parry from rating
-        float diminishing = GetRatingBonusValue(CR_PARRY);
-        // Modify value from defense skill (only bonus from defense rating diminishes)
-        nondiminishing += (int32(GetSkillValue(SKILL_DEFENSE)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
-        diminishing += (GetRatingBonusValue(CR_DEFENSE_SKILL) * 0.04f);
-        // Parry from SPELL_AURA_MOD_PARRY_PERCENT aura
-        nondiminishing += GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
-
-        // apply diminishing formula to diminishing parry chance
-        value = CalculateDiminishingReturns(parry_cap, GetClass(), nondiminishing, diminishing);
-
-        if (sWorld->getBoolConfig(CONFIG_STATS_LIMITS_ENABLE))
-             value = value > sWorld->getFloatConfig(CONFIG_STATS_LIMITS_PARRY) ? sWorld->getFloatConfig(CONFIG_STATS_LIMITS_PARRY) : value;
-
-        value = value < 0.0f ? 0.0f : value;
+        float agility = GetStat(STAT_AGILITY);
+        agility = agility - 20.0f;
+        value = 5.0f + (agility / 5.0f);
+        value += GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
+        value += GetRatingBonusValue(CR_PARRY);
+        if (value < 0.0f)
+            value = 0.0f;
+        if (value > 95.0f)
+            value = 95.0f;
     }
     SetStatFloatValue(PLAYER_PARRY_PERCENTAGE, value);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 float const dodge_cap[MAX_CLASSES] =
 {
-    88.129021f,     // Warrior
-    88.129021f,     // Paladin
-    145.560408f,    // Hunter
-    145.560408f,    // Rogue
-    150.375940f,    // Priest
-    88.129021f,     // DK
-    145.560408f,    // Shaman
-    150.375940f,    // Mage
-    150.375940f,    // Warlock
+    0.0f,           // Warrior
+    0.0f,           // Paladin
+    0.0f,           // Hunter
+    0.0f,           // Rogue
+    0.0f,           // Priest
+    0.0f,           // DK
+    0.0f,           // Shaman
+    0.0f,           // Mage
+    0.0f,           // Warlock
     0.0f,           // ??
-    116.890707f     // Druid
+    0.0f            // Druid
 };
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateDodgePercentage()
 {
-    float diminishing = 0.0f, nondiminishing = 0.0f;
-    GetDodgeFromAgility(diminishing, nondiminishing);
-    // Modify value from defense skill (only bonus from defense rating diminishes)
-    nondiminishing += (int32(GetSkillValue(SKILL_DEFENSE)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
-    diminishing += (GetRatingBonusValue(CR_DEFENSE_SKILL) * 0.04f);
-    // Dodge from SPELL_AURA_MOD_DODGE_PERCENT aura
-    nondiminishing += GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
-    // Dodge from rating
-    diminishing += GetRatingBonusValue(CR_DODGE);
-
-    // apply diminishing formula to diminishing dodge chance
-    float value = CalculateDiminishingReturns(dodge_cap, GetClass(), nondiminishing, diminishing);
-
-    if (sWorld->getBoolConfig(CONFIG_STATS_LIMITS_ENABLE))
-         value = value > sWorld->getFloatConfig(CONFIG_STATS_LIMITS_DODGE) ? sWorld->getFloatConfig(CONFIG_STATS_LIMITS_DODGE) : value;
-
-    value = value < 0.0f ? 0.0f : value;
+    float value = 0.0f;
+    float agility = GetStat(STAT_AGILITY);
+    float armor = GetArmor();
+    agility = agility * (1.0f - (armor / 200.0f));
+    value = 5.0f + (agility / 5.0f);
+    value += GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
+    value += GetRatingBonusValue(CR_DODGE);
+    if (value < 0.0f)
+        value = 0.0f;
+    if (value > 95.0f)
+        value = 95.0f;
     SetStatFloatValue(PLAYER_DODGE_PERCENTAGE, value);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateSpellCritChance(uint32 school)
 {
