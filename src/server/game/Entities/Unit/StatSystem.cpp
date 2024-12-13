@@ -41,7 +41,7 @@
 // Player::UpdateParryPercentage                -- (if can parry) 5+((agility-20)/5)
 // const dodge_cap                              -- No changes (probably deprecated)
 // Player::UpdateDodgePercentage                -- Now based on Agility and affected by Armor
-//
+// Player::UpdateSpellCritChance                -- Simply = Intellect / 5 (+mods)
 //
 // 660
 // ----------------------------------------------------------------------------------------------------------------------------
@@ -662,28 +662,24 @@ void Player::UpdateDodgePercentage()
 
 void Player::UpdateSpellCritChance(uint32 school)
 {
-    // For normal school set zero crit chance
     if (school == SPELL_SCHOOL_NORMAL)
     {
         SetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1, 0.0f);
         return;
     }
-    // For others recalculate it from:
     float crit = 0.0f;
-    // Crit from Intellect
-    crit += GetSpellCritFromIntellect();
-    // Increase crit from SPELL_AURA_MOD_SPELL_CRIT_CHANCE
+    float intellect = GetStat(STAT_INTELLECT);
+    crit = intellect / 5.0f;
+    if (crit < 0.0f)
+        crit = 0.0f;
     crit += GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_CRIT_CHANCE);
-    // Increase crit from SPELL_AURA_MOD_CRIT_PCT
     crit += GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_PCT);
-    // Increase crit by school from SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL
     crit += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL, 1<<school);
-    // Increase crit from spell crit ratings
     crit += GetRatingBonusValue(CR_CRIT_SPELL);
-
-    // Store crit value
     SetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + school, crit);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateArmorPenetration(int32 amount)
 {
