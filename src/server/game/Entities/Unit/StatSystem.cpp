@@ -16,7 +16,7 @@
 // Unit::UpdateDamagePhysical                   -- No changes
 // Player::UpdateStats                          -- Calls multiple player-wide updates
 // Player::ApplySpellPowerBonus                 -- No changes
-// Player::UpdateSpellDamageAndHealingBonus     -- Based on Intellect and Spirit - probably borked
+// Player::UpdateSpellDamageAndHealingBonus     -- Based on Intellect and Spirit - probably borked???
 // Player::UpdateAllStats                       -- Calls multiple player-wide updates
 // Player::ApplySpellPenetrationBonus           -- No changes (but Spell Penetration is deprecated)
 // Player::UpdateResistances                    -- No changes
@@ -31,6 +31,7 @@
 // Player::CalculateMinMaxDamage                -- Some simplification, feral forms = 1.25 to 1.50 * normal damage
 // Player::UpdateDefenseBonusesMod              -- No changes
 // Player::UpdateBlockPercentage                -- (if can block) 5+((strength-20)/5)
+// Player::UpdateCritPercentage                 -- WIP
 // 470
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -475,39 +476,40 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
     BaseModGroup modGroup;
     uint16 index;
     CombatRating cr;
-
+    float value = 0.0f;
     switch (attType)
     {
         case OFF_ATTACK:
             modGroup = OFFHAND_CRIT_PERCENTAGE;
             index = PLAYER_OFFHAND_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
+            //STRENGTH&AGILITY BONUS (low)
+            value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
         case RANGED_ATTACK:
             modGroup = RANGED_CRIT_PERCENTAGE;
             index = PLAYER_RANGED_CRIT_PERCENTAGE;
             cr = CR_CRIT_RANGED;
+            //AGILITY BONUS (high)
+            value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
         case BASE_ATTACK:
         default:
             modGroup = CRIT_PERCENTAGE;
             index = PLAYER_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
+            //STRENGTH&AGILITY BONUS (high)
+            value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
     }
-
-    // flat = bonus from crit auras, pct = bonus from agility, combat rating = mods from items
-    float value = GetBaseModValue(modGroup, FLAT_MOD) + GetBaseModValue(modGroup, PCT_MOD) + GetRatingBonusValue(cr);
-
-    // Modify crit from weapon skill and maximized defense skill of same level victim difference
-    value += (int32(GetWeaponSkillValue(attType)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
-
-    if (sWorld->getBoolConfig(CONFIG_STATS_LIMITS_ENABLE))
-         value = value > sWorld->getFloatConfig(CONFIG_STATS_LIMITS_CRIT) ? sWorld->getFloatConfig(CONFIG_STATS_LIMITS_CRIT) : value;
-
-    value = std::max(0.0f, value);
+    if (value < 0.0f)
+        value = 0.0f;
+    if (value > 95.0f)
+        value = 95.0f;
     SetStatFloatValue(index, value);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateAllCritPercentages()
 {
