@@ -33,7 +33,12 @@
 // Player::UpdateBlockPercentage                -- (if can block) 5+((strength-20)/5)
 // Player::UpdateCritPercentage                 -- Now based on STR/AGI (melee) or AGI (ranged).  Offhand% = half of mainhand%
 // Player::UpdateAllCritPercentages             -- No changes
-// 522
+// const m_diminishing_k                        -- No changes (probably deprecated)
+// CalculateDiminishingReturns                  -- No changes (probably deprecated)
+// const miss_cap                               -- No changes (probably deprecated)
+// Player::GetMissPercentageFromDefense         -- WIP
+//
+// 575
 // ----------------------------------------------------------------------------------------------------------------------------
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
@@ -523,56 +528,49 @@ void Player::UpdateAllCritPercentages()
 
 float const m_diminishing_k[MAX_CLASSES] =
 {
-    0.9560f,  // Warrior
-    0.9560f,  // Paladin
+    0.9880f,  // Warrior
+    0.9880f,  // Paladin
     0.9880f,  // Hunter
     0.9880f,  // Rogue
-    0.9830f,  // Priest
-    0.9560f,  // DK
+    0.9880f,  // Priest
+    0.9880f,  // DK
     0.9880f,  // Shaman
-    0.9830f,  // Mage
-    0.9830f,  // Warlock
-    0.0f,     // ??
-    0.9720f   // Druid
+    0.9880f,  // Mage
+    0.9880f,  // Warlock
+    0.9880f,  // ??
+    0.9880f   // Druid
 };
 
-// helper function
+// ----------------------------------------------------------------------------------------------------------------------------
+
 float CalculateDiminishingReturns(float const (&capArray)[MAX_CLASSES], uint8 playerClass, float nonDiminishValue, float diminishValue)
 {
-    //  1     1     k              cx
-    // --- = --- + --- <=> x' = --------
-    //  x'    c     x            x + ck
-
-    // where:
-    // k  is m_diminishing_k for that class
-    // c  is capArray for that class
-    // x  is chance before DR (diminishValue)
-    // x' is chance after DR (our result)
-
     uint32 const classIdx = playerClass - 1;
-
     float const k = m_diminishing_k[classIdx];
     float const c = capArray[classIdx];
-
     float result = c * diminishValue / (diminishValue + c * k);
     result += nonDiminishValue;
     return result;
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 float const miss_cap[MAX_CLASSES] =
 {
-    16.00f,     // Warrior //correct
-    16.00f,     // Paladin //correct
-    16.00f,     // Hunter  //?
-    16.00f,     // Rogue   //?
-    16.00f,     // Priest  //?
-    16.00f,     // DK      //correct
-    16.00f,     // Shaman  //?
-    16.00f,     // Mage    //?
-    16.00f,     // Warlock //?
-    0.0f,       // ??
-    16.00f      // Druid   //?
+    16.00f,     // Warrior
+    16.00f,     // Paladin
+    16.00f,     // Hunter
+    16.00f,     // Rogue
+    16.00f,     // Priest
+    16.00f,     // DK
+    16.00f,     // Shaman
+    16.00f,     // Mage
+    16.00f,     // Warlock
+    16.00f,     // ??
+    16.00f      // Druid
 };
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 float Player::GetMissPercentageFromDefense() const
 {
