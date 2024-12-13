@@ -42,8 +42,14 @@
 // const dodge_cap                              -- No changes (probably deprecated)
 // Player::UpdateDodgePercentage                -- Now based on Agility and affected by Armor
 // Player::UpdateSpellCritChance                -- Simply = Intellect / 5 (+mods)
+// Player::UpdateArmorPenetration               -- No changes
+// Player::UpdateMeleeHitChances                -- No changes
+// Player::UpdateRangedHitChances               -- No changes
+// Player::UpdateSpellHitChances                -- No changes
+// Player::UpdateAllSpellCritChances            -- No changes
+// 
 //
-// 660
+// 731
 // ----------------------------------------------------------------------------------------------------------------------------
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
@@ -486,18 +492,21 @@ void Player::UpdateBlockPercentage()
 void Player::UpdateCritPercentage(WeaponAttackType attType)
 {
     BaseModGroup modGroup;
+    uint16 index;
     CombatRating cr;
     float value = 0.0f;
     switch (attType)
     {
         case OFF_ATTACK:
             modGroup = OFFHAND_CRIT_PERCENTAGE;
+            index = PLAYER_OFFHAND_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
             value = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 200.0f;
             value = value + GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
         case RANGED_ATTACK:
             modGroup = RANGED_CRIT_PERCENTAGE;
+            index = PLAYER_RANGED_CRIT_PERCENTAGE;
             cr = CR_CRIT_RANGED;
             value = (GetStat(STAT_AGILITY) * GetStat(STAT_AGILITY)) / 100.0f;
             value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
@@ -505,6 +514,7 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
         case BASE_ATTACK:
         default:
             modGroup = CRIT_PERCENTAGE;
+            index = PLAYER_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
             value = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 100.0f;
             value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
@@ -647,8 +657,7 @@ void Player::UpdateDodgePercentage()
     float value = 0.0f;
     float agility = GetStat(STAT_AGILITY);
     float armor = GetArmor();
-    agility = agility * (1.0f - (armor / 200.0f));
-    value = 5.0f + (agility / 5.0f);
+    value = (agility / 5.0f) - (armor / 10.0f);
     value += GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
     value += GetRatingBonusValue(CR_DODGE);
     if (value < 0.0f)
@@ -687,15 +696,21 @@ void Player::UpdateArmorPenetration(int32 amount)
     SetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + AsUnderlyingType(CR_ARMOR_PENETRATION), amount);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::UpdateMeleeHitChances()
 {
     m_modMeleeHitChance = GetRatingBonusValue(CR_HIT_MELEE);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::UpdateRangedHitChances()
 {
     m_modRangedHitChance = GetRatingBonusValue(CR_HIT_RANGED);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateSpellHitChances()
 {
@@ -703,11 +718,15 @@ void Player::UpdateSpellHitChances()
     m_modSpellHitChance += GetRatingBonusValue(CR_HIT_SPELL);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::UpdateAllSpellCritChances()
 {
     for (int i = SPELL_SCHOOL_NORMAL; i < MAX_SPELL_SCHOOL; ++i)
         UpdateSpellCritChance(i);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateExpertise(WeaponAttackType attack)
 {
