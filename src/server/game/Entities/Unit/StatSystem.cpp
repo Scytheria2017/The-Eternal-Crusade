@@ -31,8 +31,9 @@
 // Player::CalculateMinMaxDamage                -- Some simplification, feral forms = 1.25 to 1.50 * normal damage
 // Player::UpdateDefenseBonusesMod              -- No changes
 // Player::UpdateBlockPercentage                -- (if can block) 5+((strength-20)/5)
-// Player::UpdateCritPercentage                 -- WIP
-// 470
+// Player::UpdateCritPercentage                 -- Now based on STR/AGI (melee) or AGI (ranged).  Offhand% = half of mainhand%
+// Player::UpdateAllCritPercentages             -- No changes
+// 522
 // ----------------------------------------------------------------------------------------------------------------------------
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
@@ -474,31 +475,27 @@ void Player::UpdateBlockPercentage()
 void Player::UpdateCritPercentage(WeaponAttackType attType)
 {
     BaseModGroup modGroup;
-    uint16 index;
     CombatRating cr;
     float value = 0.0f;
     switch (attType)
     {
         case OFF_ATTACK:
             modGroup = OFFHAND_CRIT_PERCENTAGE;
-            index = PLAYER_OFFHAND_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
-            //STRENGTH&AGILITY BONUS (low)
-            value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
+            value = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 200.0f;
+            value = value + GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
         case RANGED_ATTACK:
             modGroup = RANGED_CRIT_PERCENTAGE;
-            index = PLAYER_RANGED_CRIT_PERCENTAGE;
             cr = CR_CRIT_RANGED;
-            //AGILITY BONUS (high)
+            value = (GetStat(STAT_AGILITY) * GetStat(STAT_AGILITY)) / 100.0f;
             value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
         case BASE_ATTACK:
         default:
             modGroup = CRIT_PERCENTAGE;
-            index = PLAYER_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
-            //STRENGTH&AGILITY BONUS (high)
+            value = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 100.0f;
             value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
     }
@@ -514,15 +511,15 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
 void Player::UpdateAllCritPercentages()
 {
     float value = GetMeleeCritFromAgility();
-
     SetBaseModPctValue(CRIT_PERCENTAGE, value);
     SetBaseModPctValue(OFFHAND_CRIT_PERCENTAGE, value);
     SetBaseModPctValue(RANGED_CRIT_PERCENTAGE, value);
-
     UpdateCritPercentage(BASE_ATTACK);
     UpdateCritPercentage(OFF_ATTACK);
     UpdateCritPercentage(RANGED_ATTACK);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 float const m_diminishing_k[MAX_CLASSES] =
 {
