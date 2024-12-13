@@ -30,7 +30,8 @@
 // Player::UpdateShieldBlockValue               -- No changes, only calls GetShieldBlockValue
 // Player::CalculateMinMaxDamage                -- Some simplification, feral forms = 1.25 to 1.50 * normal damage
 // Player::UpdateDefenseBonusesMod              -- No changes
-// 449
+// Player::UpdateBlockPercentage                -- (if can block) 5+((strength-20)/5)
+// 470
 // ----------------------------------------------------------------------------------------------------------------------------
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
@@ -451,26 +452,23 @@ void Player::UpdateDefenseBonusesMod()
 
 void Player::UpdateBlockPercentage()
 {
-    // No block
     float value = 0.0f;
     if (CanBlock())
     {
-        // Base value
-        value = 5.0f;
-        // Modify value from defense skill
-        value += (int32(GetDefenseSkillValue()) - int32(GetMaxSkillValueForLevel())) * 0.04f;
-        // Increase from SPELL_AURA_MOD_BLOCK_PERCENT aura
+        float strength = GetStat(STAT_STRENGTH);
+        strength = strength - 20.0f;
+        value = 5.0f + (strength / 5.0f);
         value += GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_PERCENT);
-        // Increase from rating
         value += GetRatingBonusValue(CR_BLOCK);
-
-        if (sWorld->getBoolConfig(CONFIG_STATS_LIMITS_ENABLE))
-             value = value > sWorld->getFloatConfig(CONFIG_STATS_LIMITS_BLOCK) ? sWorld->getFloatConfig(CONFIG_STATS_LIMITS_BLOCK) : value;
-
-        value = value < 0.0f ? 0.0f : value;
+        if (value < 0.0f)
+            value = 0.0f;
+        if (value > 95.0f)
+            value = 95.0f;
     }
     SetStatFloatValue(PLAYER_BLOCK_PERCENTAGE, value);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateCritPercentage(WeaponAttackType attType)
 {
