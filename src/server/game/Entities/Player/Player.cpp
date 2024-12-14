@@ -508,38 +508,31 @@ bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount)
 {
     TC_LOG_DEBUG("entities.player.items", "Player::StoreNewItemInBestSlots: Player '{}' ({}) creates initial item (ItemID: {}, Count: {})",
         GetName(), GetGUID().ToString(), titem_id, titem_amount);
-
-    // attempt equip by one
     while (titem_amount > 0)
     {
         uint16 eDest;
         InventoryResult msg = CanEquipNewItem(NULL_SLOT, eDest, titem_id, false);
         if (msg != EQUIP_ERR_OK)
             break;
-
         EquipNewItem(eDest, titem_id, true);
         AutoUnequipOffhandIfNeed();
         --titem_amount;
     }
-
     if (titem_amount == 0)
-        return true;                                        // equipped
-
-    // attempt store
+        return true;                                     
     ItemPosCountVec sDest;
-    // store in main bag to simplify second pass (special bags can be not equipped yet at this moment)
     InventoryResult msg = CanStoreNewItem(INVENTORY_SLOT_BAG_0, NULL_SLOT, sDest, titem_id, titem_amount);
     if (msg == EQUIP_ERR_OK)
     {
         StoreNewItem(sDest, titem_id, true, GenerateItemRandomPropertyId(titem_id));
-        return true;                                        // stored
+        return true;                                      
     }
-
-    // item can't be added
     TC_LOG_ERROR("entities.player.items", "Player::StoreNewItemInBestSlots: Player '{}' ({}) can't equip or store initial item (ItemID: {}, Race: {}, Class: {}, InventoryResult: {})",
         GetName(), GetGUID().ToString(), titem_id, GetRace(), GetClass(), msg);
     return false;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::SendMirrorTimer(MirrorTimerType Type, uint32 MaxValue, uint32 CurrentValue, int32 Regen)
 {
@@ -549,9 +542,10 @@ void Player::SendMirrorTimer(MirrorTimerType Type, uint32 MaxValue, uint32 Curre
             StopMirrorTimer(Type);
         return;
     }
-
     SendDirectMessage(WorldPackets::Misc::StartMirrorTimer(Type, CurrentValue, MaxValue, Regen, false, 0).Write());
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::StopMirrorTimer(MirrorTimerType Type)
 {
@@ -559,18 +553,19 @@ void Player::StopMirrorTimer(MirrorTimerType Type)
     SendDirectMessage(WorldPackets::Misc::StopMirrorTimer(Type).Write());
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 bool Player::IsImmuneToEnvironmentalDamage() const
 {
-    // check for GM and death state included in isAttackableByAOE
     return !isTargetableForAttack(false);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
 {
     if (IsImmuneToEnvironmentalDamage())
         return 0;
-
-    // Absorb, resist some environmental damage type
     uint32 absorb = 0;
     uint32 resist = 0;
     switch (type)
@@ -589,9 +584,7 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
         default:
             break;
     }
-
     Unit::DealDamageMods(this, damage, &absorb);
-
     WorldPackets::CombatLog::EnvironmentalDamageLog packet;
     packet.Victim = GetGUID();
     packet.Type = type != DAMAGE_FALL_TO_VOID ? type : DAMAGE_FALL;
@@ -599,25 +592,22 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
     packet.Absorbed = absorb;
     packet.Resisted = resist;
     SendMessageToSet(packet.Write(), true);
-
     uint32 final_damage = Unit::DealDamage(this, this, damage, nullptr, SELF_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
-
     if (!IsAlive())
     {
-        if (type == DAMAGE_FALL)                               // DealDamage does not apply item durability loss from self-induced damage.
+        if (type == DAMAGE_FALL)                              
         {
             TC_LOG_DEBUG("entities.player", "Player::EnvironmentalDamage: Player '{}' ({}) fall to death, losing {} durability",
                 GetName(), GetGUID().ToString(), sWorld->getRate(RATE_DURABILITY_LOSS_ON_DEATH));
             DurabilityLossAll(sWorld->getRate(RATE_DURABILITY_LOSS_ON_DEATH), false);
-            // durability lost message
             SendDurabilityLoss();
         }
-
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DEATHS_FROM, 1, type);
     }
-
     return final_damage;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 int32 Player::getMaxTimer(MirrorTimerType timer) const
 {
@@ -629,7 +619,6 @@ int32 Player::getMaxTimer(MirrorTimerType timer) const
         {
             if (!IsAlive() || HasAuraType(SPELL_AURA_WATER_BREATHING) || GetSession()->GetSecurity() >= AccountTypes(sWorld->getIntConfig(CONFIG_DISABLE_BREATHING)))
                 return DISABLED_MIRROR_TIMER;
-
             int32 UnderWaterTime = 3 * MINUTE * IN_MILLISECONDS;
             UnderWaterTime *= GetTotalAuraMultiplier(SPELL_AURA_MOD_WATER_BREATHING);
             return UnderWaterTime;
@@ -645,12 +634,15 @@ int32 Player::getMaxTimer(MirrorTimerType timer) const
     }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::UpdateMirrorTimers()
 {
-    // Desync flags for update on next HandleDrowning
     if (m_MirrorTimerFlags)
         m_MirrorTimerFlagsLast = ~m_MirrorTimerFlags;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::StopMirrorTimers()
 {
@@ -659,56 +651,50 @@ void Player::StopMirrorTimers()
     StopMirrorTimer(FIRE_TIMER);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 bool Player::IsMirrorTimerActive(MirrorTimerType type) const
 {
     return m_MirrorTimer[type] == getMaxTimer(type);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::HandleDrowning(uint32 time_diff)
 {
     if (!m_MirrorTimerFlags)
         return;
-
-    // In water
     if (m_MirrorTimerFlags & UNDERWATER_INWATER)
     {
-        // Breath timer not activated - activate it
         if (m_MirrorTimer[BREATH_TIMER] == DISABLED_MIRROR_TIMER)
         {
             m_MirrorTimer[BREATH_TIMER] = getMaxTimer(BREATH_TIMER);
             SendMirrorTimer(BREATH_TIMER, m_MirrorTimer[BREATH_TIMER], m_MirrorTimer[BREATH_TIMER], -1);
         }
-        else                                                              // If activated - do tick
+        else                                                              
         {
             m_MirrorTimer[BREATH_TIMER] -= time_diff;
-            // Timer limit - need deal damage
             if (m_MirrorTimer[BREATH_TIMER] < 0)
             {
                 m_MirrorTimer[BREATH_TIMER] += 1 * IN_MILLISECONDS;
-                // Calculate and deal damage
-                /// @todo Check this formula
-                uint32 damage = GetMaxHealth() / 5 + urand(0, GetLevel() - 1);
+                uint32 damage = GetMaxHealth() / 5 + urand(0, 5);
                 EnvironmentalDamage(DAMAGE_DROWNING, damage);
             }
-            else if (!(m_MirrorTimerFlagsLast & UNDERWATER_INWATER))      // Update time in client if need
+            else if (!(m_MirrorTimerFlagsLast & UNDERWATER_INWATER))      
                 SendMirrorTimer(BREATH_TIMER, getMaxTimer(BREATH_TIMER), m_MirrorTimer[BREATH_TIMER], -1);
         }
     }
-    else if (m_MirrorTimer[BREATH_TIMER] != DISABLED_MIRROR_TIMER)        // Regen timer
+    else if (m_MirrorTimer[BREATH_TIMER] != DISABLED_MIRROR_TIMER)        
     {
         int32 UnderWaterTime = getMaxTimer(BREATH_TIMER);
-        // Need breath regen
         m_MirrorTimer[BREATH_TIMER] += 10 * time_diff;
         if (m_MirrorTimer[BREATH_TIMER] >= UnderWaterTime || !IsAlive())
             StopMirrorTimer(BREATH_TIMER);
         else if (m_MirrorTimerFlagsLast & UNDERWATER_INWATER)
             SendMirrorTimer(BREATH_TIMER, UnderWaterTime, m_MirrorTimer[BREATH_TIMER], 10);
     }
-
-    // In dark water
     if (m_MirrorTimerFlags & UNDERWATER_INDARKWATER)
     {
-        // Fatigue timer not activated - activate it
         if (m_MirrorTimer[FATIGUE_TIMER] == DISABLED_MIRROR_TIMER)
         {
             m_MirrorTimer[FATIGUE_TIMER] = getMaxTimer(FATIGUE_TIMER);
@@ -717,23 +703,22 @@ void Player::HandleDrowning(uint32 time_diff)
         else
         {
             m_MirrorTimer[FATIGUE_TIMER] -= time_diff;
-            // Timer limit - need deal damage or teleport ghost to graveyard
             if (m_MirrorTimer[FATIGUE_TIMER] < 0)
             {
                 m_MirrorTimer[FATIGUE_TIMER] += 1 * IN_MILLISECONDS;
-                if (IsAlive())                                            // Calculate and deal damage
+                if (IsAlive())                                           
                 {
-                    uint32 damage = GetMaxHealth() / 5 + urand(0, GetLevel() - 1);
+                    uint32 damage = GetMaxHealth() / 5 + urand(0, 5);
                     EnvironmentalDamage(DAMAGE_EXHAUSTED, damage);
                 }
-                else if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))       // Teleport ghost to graveyard
+                else if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))       
                     RepopAtGraveyard();
             }
             else if (!(m_MirrorTimerFlagsLast & UNDERWATER_INDARKWATER))
                 SendMirrorTimer(FATIGUE_TIMER, getMaxTimer(FATIGUE_TIMER), m_MirrorTimer[FATIGUE_TIMER], -1);
         }
     }
-    else if (m_MirrorTimer[FATIGUE_TIMER] != DISABLED_MIRROR_TIMER)       // Regen timer
+    else if (m_MirrorTimer[FATIGUE_TIMER] != DISABLED_MIRROR_TIMER)      
     {
         int32 DarkWaterTime = getMaxTimer(FATIGUE_TIMER);
         m_MirrorTimer[FATIGUE_TIMER] += 10 * time_diff;
@@ -742,10 +727,8 @@ void Player::HandleDrowning(uint32 time_diff)
         else if (m_MirrorTimerFlagsLast & UNDERWATER_INDARKWATER)
             SendMirrorTimer(FATIGUE_TIMER, DarkWaterTime, m_MirrorTimer[FATIGUE_TIMER], 10);
     }
-
-    if (m_MirrorTimerFlags & (UNDERWATER_INLAVA /*| UNDERWATER_INSLIME*/) && !(_lastLiquid && _lastLiquid->SpellID))
+    if (m_MirrorTimerFlags & (UNDERWATER_INLAVA) && !(_lastLiquid && _lastLiquid->SpellID))
     {
-        // Breath timer not activated - activate it
         if (m_MirrorTimer[FIRE_TIMER] == DISABLED_MIRROR_TIMER)
             m_MirrorTimer[FIRE_TIMER] = getMaxTimer(FIRE_TIMER);
         else
@@ -754,22 +737,14 @@ void Player::HandleDrowning(uint32 time_diff)
             if (m_MirrorTimer[FIRE_TIMER] < 0)
             {
                 m_MirrorTimer[FIRE_TIMER] += 1 * IN_MILLISECONDS;
-                // Calculate and deal damage
-                /// @todo Check this formula
-                uint32 damage = urand(600, 700);
+                uint32 damage = urand(10, 20);
                 if (m_MirrorTimerFlags & UNDERWATER_INLAVA)
                     EnvironmentalDamage(DAMAGE_LAVA, damage);
-                // need to skip Slime damage in Undercity,
-                // maybe someone can find better way to handle environmental damage
-                //else if (m_zoneUpdateId != 1497)
-                //    EnvironmentalDamage(DAMAGE_SLIME, damage);
             }
         }
     }
     else
         m_MirrorTimer[FIRE_TIMER] = DISABLED_MIRROR_TIMER;
-
-    // Recheck timers flag
     m_MirrorTimerFlags &= ~UNDERWATER_EXIST_TIMERS;
     for (uint8 i = 0; i < MAX_TIMERS; ++i)
     {
@@ -782,17 +757,19 @@ void Player::HandleDrowning(uint32 time_diff)
     m_MirrorTimerFlagsLast = m_MirrorTimerFlags;
 }
 
-///The player sobers by 1% every 9 seconds
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::HandleSobering()
 {
     m_drunkTimer = 0;
-
     uint8 currentDrunkValue = GetDrunkValue();
     uint8 drunk = currentDrunkValue ? --currentDrunkValue : 0;
     SetDrunkValue(drunk);
 }
 
-/*static*/ DrunkenState Player::GetDrunkenstateByValue(uint8 value)
+// ----------------------------------------------------------------------------------------------------------------------------
+
+DrunkenState Player::GetDrunkenstateByValue(uint8 value)
 {
     if (value >= 90)
         return DRUNKEN_SMASHED;
@@ -803,38 +780,34 @@ void Player::HandleSobering()
     return DRUNKEN_SOBER;
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::SetDrunkValue(uint8 newDrunkValue, uint32 itemId /*= 0*/)
 {
     newDrunkValue = std::min<uint8>(newDrunkValue, 100);
     if (newDrunkValue == GetDrunkValue())
         return;
-
     uint32 oldDrunkenState = Player::GetDrunkenstateByValue(GetDrunkValue());
     uint32 newDrunkenState = Player::GetDrunkenstateByValue(newDrunkValue);
-
     SetByteValue(PLAYER_BYTES_3, PLAYER_BYTES_3_OFFSET_INEBRIATION, newDrunkValue);
     UpdateInvisibilityDrunkDetect();
-
-    m_drunkTimer = 0; // reset sobering timer
-
+    m_drunkTimer = 0;
     if (newDrunkenState == oldDrunkenState)
         return;
-
     WorldPackets::Misc::CrossedInebriationThreshold data;
     data.Guid = GetGUID();
     data.Threshold = newDrunkenState;
     data.ItemID = itemId;
-
     SendMessageToSet(data.Write(), true);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::UpdateInvisibilityDrunkDetect()
 {
-    // select drunk percent or total SPELL_AURA_MOD_FAKE_INEBRIATE amount, whichever is higher for visibility updates
     uint8 drunkValue        = GetDrunkValue();
     int32 fakeDrunkValue    = GetFakeDrunkValue();
     int32 maxDrunkValue     = std::max<int32>(drunkValue, fakeDrunkValue);
-
     if (maxDrunkValue != 0)
     {
         m_invisibilityDetect.AddFlag(INVISIBILITY_DRUNK);
@@ -842,72 +815,53 @@ void Player::UpdateInvisibilityDrunkDetect()
     }
     else
         m_invisibilityDetect.DelFlag(INVISIBILITY_DRUNK);
-
     if (IsInWorld())
         UpdateObjectVisibility();
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::Update(uint32 p_time)
 {
     if (!IsInWorld())
         return;
-
-    // undelivered mail
     if (m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
     {
         SendNewMail();
         ++unReadMails;
-
-        // It will be recalculate at mailbox open (for unReadMails important non-0 until mailbox open, it also will be recalculated)
         m_nextMailDelivereTime = 0;
     }
-
-    // Update cinematic location, if 500ms have passed and we're doing a cinematic now.
     _cinematicMgr->m_cinematicDiff += p_time;
     if (_cinematicMgr->m_cinematicCamera && _cinematicMgr->m_activeCinematicCameraId && GetMSTimeDiffToNow(_cinematicMgr->m_lastCinematicCheck) > CINEMATIC_UPDATEDIFF)
     {
         _cinematicMgr->m_lastCinematicCheck = GameTime::GetGameTimeMS();
         _cinematicMgr->UpdateCinematicLocation(p_time);
     }
-
-    //used to implement delayed far teleports
     SetCanDelayTeleport(true);
     Unit::Update(p_time);
     SetCanDelayTeleport(false);
-
     time_t now = GameTime::GetGameTime();
-
     UpdatePvPFlag(now);
-
     UpdateContestedPvP(p_time);
-
     UpdateDuelFlag(now);
-
     CheckDuelDistance(now);
-
     UpdateAfkReport(now);
-
     Unit::AIUpdateTick(p_time);
-
-    // Once per second, update items that have just a limited lifetime
     if (now > m_Last_tick)
     {
         UpdateItemDuration(uint32(now - m_Last_tick));
         UpdateSoulboundTradeItems();
     }
-
-    // If mute expired, remove it from the DB
     if (GetSession()->m_muteTime && GetSession()->m_muteTime < now)
     {
         GetSession()->m_muteTime = 0;
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_MUTE_TIME);
-        stmt->setInt64(0, 0); // Set the mute time to 0
+        stmt->setInt64(0, 0); 
         stmt->setString(1, "");
         stmt->setString(2, "");
         stmt->setUInt32(3, GetSession()->GetAccountId());
         LoginDatabase.Execute(stmt);
     }
-
     if (!m_timedquests.empty())
     {
         QuestSet::iterator iter = m_timedquests.begin();
@@ -917,7 +871,7 @@ void Player::Update(uint32 p_time)
             if (q_status.Timer <= p_time)
             {
                 uint32 quest_id  = *iter;
-                ++iter;                                     // current iter will be removed in FailQuest
+                ++iter;                                     
                 FailQuest(quest_id);
             }
             else
@@ -928,32 +882,26 @@ void Player::Update(uint32 p_time)
             }
         }
     }
-
     m_achievementMgr->UpdateTimedAchievements(p_time);
-
     if (HasUnitState(UNIT_STATE_MELEE_ATTACKING) && !HasUnitState(UNIT_STATE_CASTING | UNIT_STATE_CHARGING))
     {
         if (Unit* victim = GetVictim())
         {
-            // default combat reach 10
-            /// @todo add weapon, skill check
-
             if (isAttackReady(BASE_ATTACK))
             {
                 if (!IsWithinMeleeRange(victim))
                 {
                     setAttackTimer(BASE_ATTACK, 100);
-                    if (m_swingErrorMsg != 1)               // send single time (client auto repeat)
+                    if (m_swingErrorMsg != 1)              
                     {
                         SendAttackSwingNotInRange();
                         m_swingErrorMsg = 1;
                     }
                 }
-                //120 degrees of radiant range
                 else if (!HasInArc(2 * float(M_PI) / 3, victim))
                 {
                     setAttackTimer(BASE_ATTACK, 100);
-                    if (m_swingErrorMsg != 2)               // send single time (client auto repeat)
+                    if (m_swingErrorMsg != 2)              
                     {
                         SendAttackSwingBadFacingAttack();
                         m_swingErrorMsg = 2;
@@ -961,19 +909,14 @@ void Player::Update(uint32 p_time)
                 }
                 else
                 {
-                    m_swingErrorMsg = 0;                    // reset swing error state
-
-                    // prevent base and off attack in same time, delay attack at 0.2 sec
+                    m_swingErrorMsg = 0;                    
                     if (haveOffhandWeapon())
                         if (getAttackTimer(OFF_ATTACK) < ATTACK_DISPLAY_DELAY)
                             setAttackTimer(OFF_ATTACK, ATTACK_DISPLAY_DELAY);
-
-                    // do attack
                     AttackerStateUpdate(victim, BASE_ATTACK);
                     resetAttackTimer(BASE_ATTACK);
                 }
             }
-
             if (haveOffhandWeapon() && isAttackReady(OFF_ATTACK))
             {
                 if (!IsWithinMeleeRange(victim))
@@ -982,46 +925,30 @@ void Player::Update(uint32 p_time)
                     setAttackTimer(OFF_ATTACK, 100);
                 else
                 {
-                    // prevent base and off attack in same time, delay attack at 0.2 sec
                     if (getAttackTimer(BASE_ATTACK) < ATTACK_DISPLAY_DELAY)
                         setAttackTimer(BASE_ATTACK, ATTACK_DISPLAY_DELAY);
-
-                    // do attack
                     AttackerStateUpdate(victim, OFF_ATTACK);
                     resetAttackTimer(OFF_ATTACK);
                 }
             }
-
-            /*Unit* owner = victim->GetOwner();
-            Unit* u = owner ? owner : victim;
-            if (u->IsPvP() && (!duel || duel->opponent != u))
-            {
-                UpdatePvP(true);
-                RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_ENTER_PVP_COMBAT);
-            }*/
         }
     }
-
     if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
     {
-        if (roll_chance_i(3) && _restTime > 0)      // freeze update
+        if (roll_chance_i(3) && _restTime > 0)      
         {
             time_t currTime = GameTime::GetGameTime();
             time_t timeDiff = currTime - _restTime;
-            if (timeDiff >= 10)                             // freeze update
+            if (timeDiff >= 10)                           
             {
                 _restTime = currTime;
-
                 float bubble = 0.125f * sWorld->getRate(RATE_REST_INGAME);
                 float extraPerSec = ((float)GetUInt32Value(PLAYER_NEXT_LEVEL_XP) / 72000.0f) * bubble;
-
-                // speed collect rest bonus (section/in hour)
                 float currRestBonus = GetRestBonus();
                 SetRestBonus(currRestBonus + timeDiff * extraPerSec);
             }
         }
     }
-
     if (m_weaponChangeTimer > 0)
     {
         if (p_time >= m_weaponChangeTimer)
@@ -1029,83 +956,65 @@ void Player::Update(uint32 p_time)
         else
             m_weaponChangeTimer -= p_time;
     }
-
     if (m_zoneUpdateTimer > 0)
     {
         if (p_time >= m_zoneUpdateTimer)
         {
-            // On zone update tick check if we are still in an inn if we are supposed to be in one
             if (HasRestFlag(REST_FLAG_IN_TAVERN))
             {
                 AreaTriggerEntry const* atEntry = sAreaTriggerStore.LookupEntry(GetInnTriggerId());
                 if (!atEntry || !IsInAreaTriggerRadius(atEntry))
                     RemoveRestFlag(REST_FLAG_IN_TAVERN);
             }
-
             uint32 newzone, newarea;
             GetZoneAndAreaId(newzone, newarea);
-
             if (m_zoneUpdateId != newzone)
-                UpdateZone(newzone, newarea);                // also update area
+                UpdateZone(newzone, newarea);               
             else
             {
-                // use area updates as well
-                // needed for free far all arenas for example
                 if (m_areaUpdateId != newarea)
                     UpdateArea(newarea);
-
                 m_zoneUpdateTimer = ZONE_UPDATE_INTERVAL;
             }
         }
         else
             m_zoneUpdateTimer -= p_time;
     }
-
     if (IsAlive())
     {
         m_regenTimer += p_time;
         RegenerateAll();
     }
-
     if (m_deathState == JUST_DIED)
         KillPlayer();
-
     if (m_nextSave > 0)
     {
         if (p_time >= m_nextSave)
         {
-            // m_nextSave reset in SaveToDB call
             SaveToDB();
             TC_LOG_DEBUG("entities.player", "Player::Update: Player '{}' ({}) saved", GetName(), GetGUID().ToString());
         }
         else
             m_nextSave -= p_time;
     }
-
-    //Handle Water/drowning
     HandleDrowning(p_time);
-
-    // Played time
     if (now > m_Last_tick)
     {
         uint32 elapsed = uint32(now - m_Last_tick);
-        m_Played_time[PLAYED_TIME_TOTAL] += elapsed;        // Total played time
-        m_Played_time[PLAYED_TIME_LEVEL] += elapsed;        // Level played time
+        m_Played_time[PLAYED_TIME_TOTAL] += elapsed;        
+        m_Played_time[PLAYED_TIME_LEVEL] += elapsed;        
         m_Last_tick = now;
     }
-
     if (GetDrunkValue())
     {
         m_drunkTimer += p_time;
         if (m_drunkTimer > 9 * IN_MILLISECONDS)
             HandleSobering();
     }
-
     if (HasPendingBind())
     {
         if (_pendingBindTimer <= p_time)
         {
-            // Player left the instance
             if (_pendingBindId == GetInstanceId())
                 BindToInstance();
             SetPendingBind(0, 0);
@@ -1113,8 +1022,6 @@ void Player::Update(uint32 p_time)
         else
             _pendingBindTimer -= p_time;
     }
-
-    // not auto-free ghost from body in instances or if its affected by risen ally
     if (m_deathTimer > 0 && !GetMap()->Instanceable() && !HasAuraType(SPELL_AURA_PREVENT_RESURRECTION) && !IsGhouled())
     {
         if (p_time >= m_deathTimer)
@@ -1126,22 +1033,15 @@ void Player::Update(uint32 p_time)
         else
             m_deathTimer -= p_time;
     }
-
     UpdateEnchantTime(p_time);
     UpdateHomebindTime(p_time);
-
     if (GetClass() == CLASS_DEATH_KNIGHT)
     {
-        // Update rune timers
         for (uint8 i = 0; i < MAX_RUNES; ++i)
         {
             uint32 timer = GetRuneTimer(i);
-
-            // Don't update timer if rune is disabled
             if (GetRuneCooldown(i))
                 continue;
-
-            // Timer has began
             if (timer < 0xFFFFFFFF)
             {
                 timer += p_time;
@@ -1149,20 +1049,15 @@ void Player::Update(uint32 p_time)
             }
         }
     }
-
-    // group update
     m_groupUpdateTimer.Update(p_time);
     if (m_groupUpdateTimer.Passed())
     {
         SendUpdateToOutOfRangeGroupMembers();
         m_groupUpdateTimer.Reset(5000);
     }
-
     Pet* pet = GetPet();
     if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityRange()) && !pet->isPossessed())
-    //if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityDistance()) && (GetCharmGUID() && (pet->GetGUID() != GetCharmGUID())))
         RemovePet(pet, PET_SAVE_NOT_IN_SLOT, true);
-
     if (IsAlive())
     {
         if (m_hostileReferenceCheckTimer <= p_time)
@@ -1174,10 +1069,12 @@ void Player::Update(uint32 p_time)
         else
             m_hostileReferenceCheckTimer -= p_time;
     }
-
     if (IsHasDelayedTeleport())
         TeleportTo(m_teleport_dest, m_teleport_options);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
+
 
 void Player::setDeathState(DeathState s)
 {

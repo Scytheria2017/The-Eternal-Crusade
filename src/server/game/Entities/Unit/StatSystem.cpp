@@ -926,8 +926,16 @@ void Creature::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, 
 
     minDamage = ((weaponMinDamage + baseValue) * dmgMultiplier * basePct + totalValue) * totalPct;
     maxDamage = ((weaponMaxDamage + baseValue) * dmgMultiplier * basePct + totalValue) * totalPct;
-    minDamage = std::sqrt(std::sqrt(minDamage)) * 5.0f;
-    maxDamage = std::sqrt(std::sqrt(maxDamage)) * 5.0f;
+    minDamage = std::sqrt(std::sqrt(minDamage)) * 10.0f;
+    if (minDamage < 5.0f)
+        minDamage = 5.0f;
+    if (minDamage > 75.0f)
+        minDamage = 75.0f;
+    maxDamage = std::sqrt(std::sqrt(maxDamage)) * 10.0f;
+    if (maxDamage < 5.0f)
+        maxDamage = 5.0f;
+    if (maxDamage > 75.0f)
+        maxDamage = 75.0f;
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------

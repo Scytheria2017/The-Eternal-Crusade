@@ -1978,27 +1978,14 @@ void Pet::learnSpellHighRank(uint32 spellid)
         learnSpellHighRank(next);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Pet::SynchronizeLevelWithOwner()
 {
-    Player* owner = GetOwner();
-
-    switch (getPetType())
-    {
-        // always same level
-        case SUMMON_PET:
-            GivePetLevel(owner->GetLevel());
-            break;
-        // can't be greater owner level
-        case HUNTER_PET:
-            if (GetLevel() > owner->GetLevel())
-                GivePetLevel(owner->GetLevel());
-            else if (GetLevel() + 5 < owner->GetLevel())
-                GivePetLevel(owner->GetLevel() - 5);
-            break;
-        default:
-            break;
-    }
+    GivePetLevel(80);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 Player* Pet::GetOwner() const
 {
