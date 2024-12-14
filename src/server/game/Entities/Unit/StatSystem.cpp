@@ -463,7 +463,7 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
             modGroup = OFFHAND_CRIT_PERCENTAGE;
             index = PLAYER_OFFHAND_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
-            value = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 200.0f;
+            value = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 100.0f;
             value = value + GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
             break;
         case RANGED_ATTACK:

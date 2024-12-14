@@ -1,20 +1,3 @@
-/*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
-
 #include "Transmogrification.h"
 #include "Player.h"
 #include "AccountMgr.h"
@@ -107,19 +90,20 @@
 #include "WorldSession.h"
 #include "WorldStatePackets.h"
 
-#define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
+// ----------------------------------------------------------------------------------------------------------------------------
 
+#define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 #define PLAYER_SKILL_INDEX(x)       (PLAYER_SKILL_INFO_1_1 + ((x)*3))
 #define PLAYER_SKILL_VALUE_INDEX(x) (PLAYER_SKILL_INDEX(x)+1)
 #define PLAYER_SKILL_BONUS_INDEX(x) (PLAYER_SKILL_INDEX(x)+2)
-
 #define SKILL_VALUE(x)         PAIR32_LOPART(x)
 #define SKILL_MAX(x)           PAIR32_HIPART(x)
 #define MAKE_SKILL_VALUE(v, m) MAKE_PAIR32(v, m)
-
 #define SKILL_TEMP_BONUS(x)    int16(PAIR32_LOPART(x))
 #define SKILL_PERM_BONUS(x)    int16(PAIR32_HIPART(x))
 #define MAKE_SKILL_BONUS(t, p) MAKE_PAIR32(t, p)
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 enum CharacterFlags
 {
@@ -158,6 +142,8 @@ enum CharacterFlags
     CHARACTER_FLAG_UNK32                = 0x80000000
 };
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 enum CharacterCustomizeFlags
 {
     CHAR_CUSTOMIZE_FLAG_NONE            = 0x00000000,
@@ -166,92 +152,64 @@ enum CharacterCustomizeFlags
     CHAR_CUSTOMIZE_FLAG_RACE            = 0x00100000        // name, gender, race, etc...
 };
 
-// corpse reclaim times
+// ----------------------------------------------------------------------------------------------------------------------------
+
 #define DEATH_EXPIRE_STEP (5*MINUTE)
 #define MAX_DEATH_COUNT 3
-
 static uint32 corpseReclaimDelay[MAX_DEATH_COUNT] = { 30, 60, 120 };
-
 uint32 const MAX_MONEY_AMOUNT = static_cast<uint32>(std::numeric_limits<int32>::max());
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 Player::Player(WorldSession* session): Unit(true)
 {
     m_objectType |= TYPEMASK_PLAYER;
     m_objectTypeId = TYPEID_PLAYER;
-
     m_valuesCount = PLAYER_END;
-
     m_session = session;
-
     m_ingametime = 0;
     m_sharedQuestId = 0;
-
     m_ExtraFlags = 0;
-
     m_spellModTakingSpell = nullptr;
-    //m_pad = 0;
-
-    // players always accept
     if (!GetSession()->HasPermission(rbac::RBAC_PERM_CAN_FILTER_WHISPERS))
         SetAcceptWhispers(true);
-
     m_regenTimer = 0;
     m_regenTimerCount = 0;
     m_foodEmoteTimerCount = 0;
     m_weaponChangeTimer = 0;
-
     m_zoneUpdateId = uint32(-1);
     m_zoneUpdateTimer = 0;
-
     m_areaUpdateId = 0;
     m_team = 0;
-
     m_needsZoneUpdate = false;
-
     m_nextSave = sWorld->getIntConfig(CONFIG_INTERVAL_SAVE);
-
     memset(m_items, 0, sizeof(Item*)*PLAYER_SLOTS_COUNT);
-
     m_social = nullptr;
-
-    // group is initialized in the reference constructor
     SetGroupInvite(nullptr);
     m_groupUpdateMask = 0;
     m_auraRaidUpdateMask = 0;
     m_bPassOnGroupLoot = false;
-
     m_GuildIdInvited = 0;
     m_ArenaTeamIdInvited = 0;
-
     m_atLoginFlags = AT_LOGIN_NONE;
-
     mSemaphoreTeleport_Near = false;
     mSemaphoreTeleport_Far = false;
-
     m_DelayedOperations = 0;
     m_bCanDelayTeleport = false;
     m_bHasDelayedTeleport = false;
     m_teleport_options = 0;
-
     m_trade = nullptr;
-
     m_cinematic = 0;
-
     m_movie = 0;
-
     PlayerTalkClass = new PlayerMenu(GetSession());
     m_currentBuybackSlot = BUYBACK_SLOT_START;
-
     m_DailyQuestChanged = false;
     m_lastDailyQuestTime = 0;
-
-    // Init rune flags
     for (uint8 i = 0; i < MAX_RUNES; ++i)
     {
         SetRuneTimer(i, 0xFFFFFFFF);
         SetLastRuneGraceTimer(i, 0);
     }
-
     for (uint8 i=0; i < MAX_TIMERS; i++)
         m_MirrorTimer[i] = DISABLED_MIRROR_TIMER;
 
@@ -261,15 +219,12 @@ Player::Player(WorldSession* session): Unit(true)
     m_drunkTimer = 0;
     m_deathTimer = 0;
     m_deathExpireTime = 0;
-
     m_swingErrorMsg = 0;
-
     for (uint8 j = 0; j < PLAYER_MAX_BATTLEGROUND_QUEUES; ++j)
     {
         m_bgBattlegroundQueueID[j].bgQueueTypeId = BATTLEGROUND_QUEUE_NONE;
         m_bgBattlegroundQueueID[j].invitedToInstance = 0;
     }
-
     m_logintime = GameTime::GetGameTime();
     m_Last_tick = m_logintime;
     m_Played_time[PLAYED_TIME_TOTAL] = 0;
@@ -281,169 +236,113 @@ Player::Player(WorldSession* session): Unit(true)
     m_canTitanGrip = false;
     m_titanGripPenaltySpellId = 0;
     m_ammoDPS = 0.0f;
-
     m_temporaryUnsummonedPetNumber = 0;
-    //cache for UNIT_CREATED_BY_SPELL to allow
-    //returning reagents for temporarily removed pets
-    //when dying/logging out
     m_oldpetspell = 0;
     m_lastpetnumber = 0;
-
-    ////////////////////Rest System/////////////////////
     _restTime = 0;
     inn_triggerId = 0;
     m_rest_bonus = 0;
     _restFlagMask = 0;
-    ////////////////////Rest System/////////////////////
-
     m_mailsUpdated = false;
     unReadMails = 0;
     m_nextMailDelivereTime = 0;
-
     m_itemUpdateQueueBlocked = false;
-
-    /////////////////// Instance System /////////////////////
-
     m_HomebindTimer = 0;
     m_InstanceValid = true;
     m_dungeonDifficulty = DUNGEON_DIFFICULTY_NORMAL;
     m_raidDifficulty = RAID_DIFFICULTY_10MAN_NORMAL;
     m_raidMapDifficulty = RAID_DIFFICULTY_10MAN_NORMAL;
-
     m_lastPotionId = 0;
-
     _talentMgr = new PlayerTalentInfo();
-
     for (uint8 i = 0; i < BASEMOD_END; ++i)
     {
         m_auraBaseFlatMod[i] = 0.0f;
         m_auraBasePctMod[i] = 1.0f;
     }
-
     for (uint8 i = 0; i < MAX_COMBAT_RATING; i++)
         m_baseRatingValue[i] = 0;
-
     m_baseSpellPower = 0;
     m_baseFeralAP = 0;
     m_baseManaRegen = 0;
     m_baseHealthRegen = 0;
     m_spellPenetrationItemMod = 0;
-
-    // Honor System
     m_lastHonorUpdateTime = GameTime::GetGameTime();
-
     m_IsBGRandomWinner = false;
-
-    // Player summoning
     m_summon_expire = 0;
-
     m_seer = this;
-
     m_homebindMapId = 0;
     m_homebindAreaId = 0;
     m_homebindX = 0;
     m_homebindY = 0;
     m_homebindZ = 0;
-
     m_contestedPvPTimer = 0;
-
     m_declinedname = nullptr;
-
     m_isActive = true;
-
     m_runes = nullptr;
-
     m_lastFallTime = 0;
     m_lastFallZ = 0;
-
     m_grantableLevels = 0;
     m_fishingSteps = 0;
-
     m_ControlledByPlayer = true;
-
     sWorld->IncreasePlayerCount();
-
     m_ChampioningFaction = 0;
-
     for (uint8 i = 0; i < MAX_POWERS; ++i)
         m_powerFraction[i] = 0;
-
     isDebugAreaTriggers = false;
-
     m_WeeklyQuestChanged = false;
-
     m_MonthlyQuestChanged = false;
-
     m_SeasonalQuestChanged = false;
-
     SetPendingBind(0, 0);
-
     _activeCheats = CHEAT_NONE;
     healthBeforeDuel = 0;
     manaBeforeDuel = 0;
-
     _cinematicMgr = new CinematicMgr(this);
-
     m_achievementMgr = new AchievementMgr(this);
     m_reputationMgr = new ReputationMgr(this);
-
     m_groupUpdateTimer.Reset(5000);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 Player::~Player()
 {
-    // it must be unloaded already in PlayerLogout and accessed only for logged in player
-    //m_social = nullptr;
-
-    // Note: buy back item already deleted from DB when player was saved
     for (uint8 i = 0; i < PLAYER_SLOTS_COUNT; ++i)
         delete m_items[i];
 
     delete _talentMgr;
-
-    //all mailed items should be deleted, also all mail should be deallocated
     for (PlayerMails::iterator itr = m_mail.begin(); itr != m_mail.end(); ++itr)
         delete *itr;
-
     for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
-        delete iter->second;                                //if item is duplicated... then server may crash ... but that item should be deallocated
-
+        delete iter->second;
     delete PlayerTalkClass;
-
     for (size_t x = 0; x < ItemSetEff.size(); x++)
         delete ItemSetEff[x];
-
     delete m_declinedname;
     delete m_runes;
     delete m_achievementMgr;
     delete m_reputationMgr;
     delete _cinematicMgr;
-
     sWorld->DecreasePlayerCount();
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::CleanupsBeforeDelete(bool finalCleanup)
 {
     TradeCancel(false);
     DuelComplete(DUEL_INTERRUPTED);
-
     Unit::CleanupsBeforeDelete(finalCleanup);
-
-    // clean up player-instance binds, may unload some instance saves
     for (uint8 i = 0; i < MAX_DIFFICULTY; ++i)
         for (BoundInstancesMap::iterator itr = m_boundInstances[i].begin(); itr != m_boundInstances[i].end(); ++itr)
             itr->second.save->RemovePlayer(this);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo)
 {
-    //FIXME: outfitId not used in player creating
-    /// @todo need more checks against packet modifications
-
     Object::_Create(guidlow, 0, HighGuid::Player);
-
     m_name = createInfo->Name;
-
     PlayerInfo const* info = sObjectMgr->GetPlayerInfo(createInfo->Race, createInfo->Class);
     if (!info)
     {
@@ -451,12 +350,9 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
                 GetSession()->GetAccountId(), m_name, createInfo->Race, createInfo->Class);
         return false;
     }
-
     for (uint8 i = 0; i < PLAYER_SLOTS_COUNT; i++)
         m_items[i] = nullptr;
-
     Relocate(info->positionX, info->positionY, info->positionZ, info->orientation);
-
     ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(createInfo->Class);
     if (!cEntry)
     {
@@ -464,29 +360,22 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
                 GetSession()->GetAccountId(), m_name, createInfo->Class);
         return false;
     }
-
     SetMap(sMapMgr->CreateMap(info->mapId, this));
-
     uint8 powertype = cEntry->DisplayPower;
-
     SetObjectScale(1.0f);
-
     SetFactionForRace(createInfo->Race);
-
     if (!IsValidGender(createInfo->Gender))
     {
         TC_LOG_ERROR("entities.player.cheat", "Player::Create: Possible hacking attempt: Account {} tried to create a character named '{}' with an invalid gender ({}) - refusing to do so",
                 GetSession()->GetAccountId(), m_name, createInfo->Gender);
         return false;
     }
-
     if (!ValidateAppearance(createInfo->Race, createInfo->Class, createInfo->Gender, createInfo->HairStyle, createInfo->HairColor, createInfo->Face, createInfo->FacialHair, createInfo->Skin, true))
     {
         TC_LOG_ERROR("entities.player.cheat", "Player::Create: Possible hacking attempt: Account {} tried to create a character named '{}' with invalid appearance attributes - refusing to do so",
             GetSession()->GetAccountId(), m_name);
         return false;
     }
-
     SetRace(createInfo->Race);
     SetClass(createInfo->Class);
     SetGender(Gender(createInfo->Gender));
@@ -498,11 +387,9 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
     }
     SetUnitFlag2(UNIT_FLAG2_REGENERATE_POWER);
-    SetModCastingSpeed(1.0f);               // fix cast time showed in spell tooltip on client
-    SetHoverHeight(1.0f);            // default for players in 3.0.3
-
-    SetInt32Value(PLAYER_FIELD_WATCHED_FACTION_INDEX, uint32(-1));  // -1 is default value
-
+    SetModCastingSpeed(1.0f);          
+    SetHoverHeight(1.0f);           
+    SetInt32Value(PLAYER_FIELD_WATCHED_FACTION_INDEX, uint32(-1));  
     SetSkinId(createInfo->Skin);
     SetFaceId(createInfo->Face);
     SetHairStyleId(createInfo->HairStyle);
@@ -511,25 +398,19 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     SetRestState((GetSession()->IsARecruiter() || GetSession()->GetRecruiterId() != 0) ? REST_STATE_RAF_LINKED : REST_STATE_NOT_RAF_LINKED);
     SetNativeGender(Gender(createInfo->Gender));
     SetArenaFaction(0);
-
     SetUInt32Value(PLAYER_GUILDID, 0);
     SetRank(0);
     SetUInt32Value(PLAYER_GUILD_TIMESTAMP, 0);
-
     for (int i = 0; i < KNOWN_TITLES_SIZE; ++i)
-        SetUInt64Value(PLAYER__FIELD_KNOWN_TITLES + i, 0);  // 0=disabled
+        SetUInt64Value(PLAYER__FIELD_KNOWN_TITLES + i, 0);  
     SetUInt32Value(PLAYER_CHOSEN_TITLE, 0);
-
     SetUInt32Value(PLAYER_FIELD_KILLS, 0);
     SetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 0);
     SetUInt32Value(PLAYER_FIELD_TODAY_CONTRIBUTION, 0);
     SetUInt32Value(PLAYER_FIELD_YESTERDAY_CONTRIBUTION, 0);
-
-    // set starting level
     uint32 start_level = GetClass() != CLASS_DEATH_KNIGHT
         ? sWorld->getIntConfig(CONFIG_START_PLAYER_LEVEL)
         : sWorld->getIntConfig(CONFIG_START_DEATH_KNIGHT_PLAYER_LEVEL);
-
     if (m_session->HasPermission(rbac::RBAC_PERM_USE_START_GM_LEVEL))
     {
         uint32 gm_level = GetClass() != CLASS_DEATH_KNIGHT
@@ -539,69 +420,47 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         if (gm_level > start_level)
             start_level = gm_level;
     }
-
     SetLevel(start_level, false);
-
     InitRunes();
-
     SetMoney(GetClass() != CLASS_DEATH_KNIGHT
         ? sWorld->getIntConfig(CONFIG_START_PLAYER_MONEY)
         : sWorld->getIntConfig(CONFIG_START_DEATH_KNIGHT_PLAYER_MONEY));
     SetHonorPoints(sWorld->getIntConfig(CONFIG_START_HONOR_POINTS));
     SetArenaPoints(sWorld->getIntConfig(CONFIG_START_ARENA_POINTS));
-
-    // Played time
     m_Last_tick = GameTime::GetGameTime();
     m_Played_time[PLAYED_TIME_TOTAL] = 0;
     m_Played_time[PLAYED_TIME_LEVEL] = 0;
-
-    // base stats and related field values
     InitStatsForLevel();
     InitTaxiNodesForLevel();
     InitGlyphsForLevel();
     InitTalentForLevel();
-    InitPrimaryProfessions();                               // to max set before any spell added
-
-    // apply original stats mods before spell loading or item equipment that call before equip _RemoveStatsMods()
-    UpdateMaxHealth();                                      // Update max Health (for add bonus from stamina)
+    InitPrimaryProfessions();                            
+    UpdateMaxHealth();                                
     SetFullHealth();
     SetFullPower(POWER_MANA);
-
-    // original spells
     LearnDefaultSkills();
     LearnCustomSpells();
-
-    // original action bar
     for (PlayerCreateInfoActions::const_iterator action_itr = info->action.begin(); action_itr != info->action.end(); ++action_itr)
         addActionButton(action_itr->button, action_itr->action, action_itr->type);
-
-    // original items
     if (CharStartOutfitEntry const* oEntry = GetCharStartOutfitEntry(createInfo->Race, createInfo->Class, createInfo->Gender))
     {
         for (int j = 0; j < MAX_OUTFIT_ITEMS; ++j)
         {
             if (oEntry->ItemID[j] <= 0)
                 continue;
-
             uint32 itemId = oEntry->ItemID[j];
-
-            // just skip, reported in ObjectMgr::LoadItemTemplates
             ItemTemplate const* iProto = sObjectMgr->GetItemTemplate(itemId);
             if (!iProto)
                 continue;
-
-            // BuyCount by default
             uint32 count = iProto->BuyCount;
-
-            // special amount for food/drink
             if (iProto->Class == ITEM_CLASS_CONSUMABLE && iProto->SubClass == ITEM_SUBCLASS_FOOD_DRINK)
             {
                 switch (iProto->Spells[0].SpellCategory)
                 {
-                    case SPELL_CATEGORY_FOOD:                                // food
+                    case SPELL_CATEGORY_FOOD:                              
                         count = GetClass() == CLASS_DEATH_KNIGHT ? 10 : 4;
                         break;
-                    case SPELL_CATEGORY_DRINK:                                // drink
+                    case SPELL_CATEGORY_DRINK:                           
                         count = 2;
                         break;
                 }
@@ -611,26 +470,19 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
             StoreNewItemInBestSlots(itemId, count);
         }
     }
-
     for (PlayerCreateInfoItems::const_iterator item_id_itr = info->item.begin(); item_id_itr != info->item.end(); ++item_id_itr)
         StoreNewItemInBestSlots(item_id_itr->item_id, item_id_itr->item_amount);
-
-    // bags and main-hand weapon must equipped at this moment
-    // now second pass for not equipped (offhand weapon/shield if it attempt equipped before main-hand weapon)
-    // or ammo not equipped in special bag
     for (uint8 i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; i++)
     {
         if (Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
         {
             uint16 eDest;
-            // equip offhand weapon/shield if it attempt equipped before main-hand weapon
             InventoryResult msg = CanEquipItem(NULL_SLOT, eDest, pItem, false);
             if (msg == EQUIP_ERR_OK)
             {
                 RemoveItem(INVENTORY_SLOT_BAG_0, i, true);
                 EquipItem(eDest, pItem, true);
             }
-            // move other items to more appropriate slots (ammo not equipped in special bag)
             else
             {
                 ItemPosCountVec sDest;
@@ -640,20 +492,17 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
                     RemoveItem(INVENTORY_SLOT_BAG_0, i, true);
                     StoreItem(sDest, pItem, true);
                 }
-
-                // if  this is ammo then use it
                 msg = CanUseAmmo(pItem->GetEntry());
                 if (msg == EQUIP_ERR_OK)
                     SetAmmo(pItem->GetEntry());
             }
         }
     }
-    // all item positions resolved
-
     GetThreatManager().Initialize();
-
     return true;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount)
 {
@@ -5191,22 +5040,16 @@ uint32 Player::GetShieldBlockValue() const
     return uint32(value);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
+
 float Player::GetMeleeCritFromAgility() const
 {
-    uint8 level = GetLevel();
-    uint32 pclass = GetClass();
-
-    if (level > GT_MAX_LEVEL)
-        level = GT_MAX_LEVEL;
-
-    GtChanceToMeleeCritBaseEntry const* critBase  = sGtChanceToMeleeCritBaseStore.LookupEntry(pclass-1);
-    GtChanceToMeleeCritEntry     const* critRatio = sGtChanceToMeleeCritStore.LookupEntry((pclass-1)*GT_MAX_LEVEL + level-1);
-    if (critBase == nullptr || critRatio == nullptr)
-        return 0.0f;
-
-    float crit = critBase->Data + GetStat(STAT_AGILITY)*critRatio->Data;
-    return crit*100.0f;
+    float value = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 100.0f;
+    return value;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::GetDodgeFromAgility(float &diminishing, float &nondiminishing) const
 {
