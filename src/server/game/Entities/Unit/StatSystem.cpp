@@ -781,30 +781,25 @@ void Player::_RemoveAllStatBonuses()
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-/*#######################################
-########                         ########
-########    MOBS STAT SYSTEM     ########
-########                         ########
-#######################################*/
-
 bool Creature::UpdateStats(Stats /*stat*/)
 {
     return true;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 bool Creature::UpdateAllStats()
 {
     UpdateMaxHealth();
     UpdateAttackPowerAndDamage();
     UpdateAttackPowerAndDamage(true);
-
     for (uint8 i = POWER_MANA; i < MAX_POWERS; ++i)
         UpdateMaxPower(Powers(i));
-
     UpdateAllResistances();
-
     return true;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Creature::UpdateResistances(uint32 school)
 {
@@ -817,17 +812,23 @@ void Creature::UpdateResistances(uint32 school)
         UpdateArmor();
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Creature::UpdateArmor()
 {
     float value = GetTotalAuraModValue(UNIT_MOD_ARMOR);
     SetArmor(int32(value));
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Creature::UpdateMaxHealth()
 {
     float value = GetTotalAuraModValue(UNIT_MOD_HEALTH);
     SetMaxHealth(uint32(value));
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Creature::UpdateMaxPower(Powers power)
 {
@@ -837,18 +838,17 @@ void Creature::UpdateMaxPower(Powers power)
     value *= GetPctModifierValue(unitMod, BASE_PCT);
     value += GetFlatModifierValue(unitMod, TOTAL_VALUE);
     value *= GetPctModifierValue(unitMod, TOTAL_PCT);
-
     SetMaxPower(power, uint32(std::lroundf(value)));
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Creature::UpdateAttackPowerAndDamage(bool ranged)
 {
     UnitMods unitMod = ranged ? UNIT_MOD_ATTACK_POWER_RANGED : UNIT_MOD_ATTACK_POWER;
-
     float baseAttackPower       = GetFlatModifierValue(unitMod, BASE_VALUE) * GetPctModifierValue(unitMod, BASE_PCT);
     float attackPowerMod        = GetFlatModifierValue(unitMod, TOTAL_VALUE);
     float attackPowerMultiplier = GetPctModifierValue(unitMod, TOTAL_PCT) - 1.0f;
-
     if (ranged)
     {
         SetRangedAttackPower(int32(baseAttackPower));
@@ -867,8 +867,6 @@ void Creature::UpdateAttackPowerAndDamage(bool ranged)
             SetAttackPowerModNeg(int32(attackPowerMod));
         SetAttackPowerMultiplier(attackPowerMultiplier);
     }
-
-    // automatically update weapon damage after attack power modification
     if (ranged)
         UpdateDamagePhysical(RANGED_ATTACK);
     else
@@ -878,16 +876,16 @@ void Creature::UpdateAttackPowerAndDamage(bool ranged)
     }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Creature::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bool addTotalPct, float& minDamage, float& maxDamage, uint8 damageIndex /*= 0*/) const
 {
-    // creatures only have one damage
     if (damageIndex != 0)
     {
         minDamage = 0.f;
         maxDamage = 0.f;
         return;
     }
-
     float variance = 1.0f;
     UnitMods unitMod;
     switch (attType)
@@ -906,40 +904,37 @@ void Creature::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, 
             unitMod = UNIT_MOD_DAMAGE_RANGED;
             break;
     }
-
     if (attType == OFF_ATTACK && !haveOffhandWeapon())
     {
         minDamage = 0.0f;
         maxDamage = 0.0f;
         return;
     }
-
     float weaponMinDamage = GetWeaponDamageRange(attType, MINDAMAGE);
     float weaponMaxDamage = GetWeaponDamageRange(attType, MAXDAMAGE);
-
-    if (!CanUseAttackType(attType)) // disarm case
+    if (!CanUseAttackType(attType))
     {
         weaponMinDamage = 0.0f;
         weaponMaxDamage = 0.0f;
     }
-
     float attackPower      = GetTotalAttackPowerValue(attType);
     float attackSpeedMulti = GetAPMultiplier(attType, normalized);
     float baseValue        = GetFlatModifierValue(unitMod, BASE_VALUE) + (attackPower / 14.0f) * variance;
     float basePct          = GetPctModifierValue(unitMod, BASE_PCT) * attackSpeedMulti;
     float totalValue       = GetFlatModifierValue(unitMod, TOTAL_VALUE);
     float totalPct         = addTotalPct ? GetPctModifierValue(unitMod, TOTAL_PCT) : 1.0f;
-    float dmgMultiplier    = GetCreatureTemplate()->ModDamage; // = ModDamage * _GetDamageMod(rank);
+    float dmgMultiplier    = GetCreatureTemplate()->ModDamage; 
 
     minDamage = ((weaponMinDamage + baseValue) * dmgMultiplier * basePct + totalValue) * totalPct;
     maxDamage = ((weaponMaxDamage + baseValue) * dmgMultiplier * basePct + totalValue) * totalPct;
+    //Damage Squishing
+    //----------------
+    //Concept is to restrict damage to the range 5 - 100, with scale vaguely linear to mob level
+    //minDamage = 
+    //maxDamage = 
 }
 
-/*#######################################
-########                         ########
-########    PETS STAT SYSTEM     ########
-########                         ########
-#######################################*/
+// ----------------------------------------------------------------------------------------------------------------------------
 
 #define ENTRY_IMP               416
 #define ENTRY_VOIDWALKER        1860
