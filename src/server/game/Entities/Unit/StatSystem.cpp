@@ -506,78 +506,10 @@ void Player::UpdateAllCritPercentages()
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-//float const m_diminishing_k[MAX_CLASSES] =
-//{
-    //0.9880f,  // Warrior
-    //0.9880f,  // Paladin
-    //0.9880f,  // Hunter
-    //0.9880f,  // Rogue
-    //0.9880f,  // Priest
-    //0.9880f,  // DK
-    //0.9880f,  // Shaman
-    //0.9880f,  // Mage
-    //0.9880f,  // Warlock
-    //0.9880f,  // ??
-    //0.9880f   // Druid
-//};
-
-// ----------------------------------------------------------------------------------------------------------------------------
-
-//float CalculateDiminishingReturns(float const (&capArray)[MAX_CLASSES], uint8 playerClass, float nonDiminishValue, float diminishValue)
-//{
-    //uint32 const classIdx = playerClass - 1;
-    //float const k = m_diminishing_k[classIdx];
-    //float const c = capArray[classIdx];
-    //float result = c * diminishValue / (diminishValue + c * k);
-    //result += nonDiminishValue;
-    //return result;
-//}
-
-// ----------------------------------------------------------------------------------------------------------------------------
-
-//float const miss_cap[MAX_CLASSES] =
-//{
-    //16.00f,     // Warrior
-    //16.00f,     // Paladin
-    //16.00f,     // Hunter
-    //16.00f,     // Rogue
-    //16.00f,     // Priest
-    //16.00f,     // DK
-    //16.00f,     // Shaman
-    //16.00f,     // Mage
-    //16.00f,     // Warlock
-    //16.00f,     // ??
-    //16.00f      // Druid
-//};
-
-// ----------------------------------------------------------------------------------------------------------------------------
-
 float Player::GetMissPercentageFromDefense() const
 {
-    // Blanket 5% miss chance for all melee attacks
     return 5.0f;
-    //float diminishing = 0.0f, nondiminishing = 0.0f;
-    //nondiminishing += (int32(GetSkillValue(SKILL_DEFENSE)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
-    //diminishing += (GetRatingBonusValue(CR_DEFENSE_SKILL) * 0.04f);
-    //return CalculateDiminishingReturns(miss_cap, GetClass(), nondiminishing, diminishing);
 }
-
-// ----------------------------------------------------------------------------------------------------------------------------
-
-//float const parry_cap[MAX_CLASSES] =
-//{
-    //0.0f,           // Warrior
-    //0.0f,           // Paladin
-    //0.0f,           // Hunter
-    //0.0f,           // Rogue
-    //0.0f,           // Priest
-    //0.0f,           // DK
-    //0.0f,           // Shaman
-    //0.0f,           // Mage
-    //0.0f,           // Warlock
-    //0.0f,           // ??
-    //0.0f            // Druid
-//};
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -598,23 +530,6 @@ void Player::UpdateParryPercentage()
     }
     SetStatFloatValue(PLAYER_PARRY_PERCENTAGE, value);
 }
-
-// ----------------------------------------------------------------------------------------------------------------------------
-
-//float const dodge_cap[MAX_CLASSES] =
-//{
-    //0.0f,           // Warrior
-    //0.0f,           // Paladin
-    //0.0f,           // Hunter
-    //0.0f,           // Rogue
-    //0.0f,           // Priest
-    //0.0f,           // DK
-    //0.0f,           // Shaman
-    //0.0f,           // Mage
-    //0.0f,           // Warlock
-    //0.0f,           // ??
-    //0.0f            // Druid
-//};
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -752,83 +667,54 @@ void Player::UpdatePowerRegen(Powers power)
 {
     if (power == POWER_HEALTH || power >= MAX_POWERS)
         return;
-
     float result_regen              = 0.f; // Out-of-combat / without last mana use effect
     float result_regen_interrupted  = 0.f; // In combat / with last mana use effect
     float modifier                  = 1.f; // Config rate or any other modifiers
-
-    /// @todo possible use of miscvalueb instead of amount
     if (HasAuraTypeWithValue(SPELL_AURA_PREVENT_REGENERATE_POWER, power))
     {
         SetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER + AsUnderlyingType(power), power == POWER_ENERGY ? -10.f : 0.f);
         SetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER + AsUnderlyingType(power), power == POWER_ENERGY ? -10.f : 0.f);
         return;
     }
-
     switch (power)
     {
         case POWER_MANA:
         {
-            float Intellect = GetStat(STAT_INTELLECT);
-            // Mana regen from spirit and intellect
-            float power_regen = std::sqrt(Intellect) * OCTRegenMPPerSpirit();
-            // Apply PCT bonus from SPELL_AURA_MOD_POWER_REGEN_PERCENT aura on spirit base regen
+            float rate = GetStat(STAT_SPIRIT) * GetStat(STAT_INTELLECT);
+            float power_regen = rate / 100.0f;
+            if (power_regen < 0.0f)
+                power_regen = 0.0f;
             power_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, POWER_MANA);
-
-            // Mana regen from SPELL_AURA_MOD_POWER_REGEN aura
             float power_regen_mp5 = (GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, POWER_MANA) + m_baseManaRegen) / 5.0f;
-
-            // Get bonus from SPELL_AURA_MOD_MANA_REGEN_FROM_STAT aura
             AuraEffectList const& regenAura = GetAuraEffectsByType(SPELL_AURA_MOD_MANA_REGEN_FROM_STAT);
             for (AuraEffectList::const_iterator i = regenAura.begin(); i != regenAura.end(); ++i)
                 power_regen_mp5 += GetStat(Stats((*i)->GetMiscValue())) * (*i)->GetAmount() / 500.0f;
-
-            // Set regen rate in cast state apply only on spirit based regen
             int32 modManaRegenInterrupt = GetTotalAuraModifier(SPELL_AURA_MOD_MANA_REGEN_INTERRUPT);
             if (modManaRegenInterrupt > 100)
                 modManaRegenInterrupt = 100;
-
             result_regen                = power_regen_mp5 + power_regen;
             result_regen_interrupted    = power_regen_mp5 + CalculatePct(power_regen, modManaRegenInterrupt);
-
-            if (GetLevel() < 15)
-                modifier *= 2.066f - (GetLevel() * 0.066f);
             break;
         }
         case POWER_RAGE:
         case POWER_ENERGY:
         case POWER_RUNIC_POWER:
-        {
-            result_regen                = powerRegenInfo[AsUnderlyingType(power)].first;
-            result_regen_interrupted    = 0.f;
-
-            result_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, AsUnderlyingType(power));
-            result_regen_interrupted += static_cast<float>(GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, AsUnderlyingType(power))) / 5.f;
-
-            if (power != POWER_RUNIC_POWER) // Butchery requires combat
-                result_regen += result_regen_interrupted;
-            break;
-        }
         default:
             break;
     }
-
     if (powerRegenInfo[AsUnderlyingType(power)].second.has_value())
         modifier *= sWorld->getRate(powerRegenInfo[AsUnderlyingType(power)].second.value()); // Config rate
-
     result_regen                *= modifier;
     result_regen_interrupted    *= modifier;
-
-    // Unit fields contain an offset relative to the base power regeneration.
     if (power != POWER_MANA)
         result_regen -= powerRegenInfo[AsUnderlyingType(power)].first;
-
     if (power == POWER_ENERGY)
         result_regen_interrupted = result_regen;
-
     SetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER + AsUnderlyingType(power), result_regen);
     SetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER + AsUnderlyingType(power), result_regen_interrupted);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 float Player::GetPowerRegen(Powers power) const
 {
