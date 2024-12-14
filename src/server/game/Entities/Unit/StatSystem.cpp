@@ -667,28 +667,49 @@ void Player::UpdatePowerRegen(Powers power)
 {
     if (power == POWER_HEALTH || power >= MAX_POWERS)
         return;
+
     float result_regen              = 0.f; // Out-of-combat / without last mana use effect
     float result_regen_interrupted  = 0.f; // In combat / with last mana use effect
     float modifier                  = 1.f; // Config rate or any other modifiers
+
+    /// @todo possible use of miscvalueb instead of amount
     if (HasAuraTypeWithValue(SPELL_AURA_PREVENT_REGENERATE_POWER, power))
     {
         SetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER + AsUnderlyingType(power), power == POWER_ENERGY ? -10.f : 0.f);
         SetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER + AsUnderlyingType(power), power == POWER_ENERGY ? -10.f : 0.f);
         return;
     }
+
     switch (power)
     {
         case POWER_MANA:
         {
-            float rate = GetStat(STAT_SPIRIT) * GetStat(STAT_INTELLECT);
-            float result_regen = rate / 200.0f;
-            if (result_regen < 0.0f)
-                result_regen = 0.0f;
+            float spirit = GetStat(STAT_SPIRIT);
+            float power_regen = std::sqrt(spirit * 2.0f) * 0.5f;
+            power_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, POWER_MANA);
+            float power_regen_mp5 = (GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, POWER_MANA) + m_baseManaRegen) / 5.0f;
+            AuraEffectList const& regenAura = GetAuraEffectsByType(SPELL_AURA_MOD_MANA_REGEN_FROM_STAT);
+            for (AuraEffectList::const_iterator i = regenAura.begin(); i != regenAura.end(); ++i)
+                power_regen_mp5 += GetStat(Stats((*i)->GetMiscValue())) * (*i)->GetAmount() / 500.0f;
+            int32 modManaRegenInterrupt = GetTotalAuraModifier(SPELL_AURA_MOD_MANA_REGEN_INTERRUPT);
+            if (modManaRegenInterrupt > 100)
+                modManaRegenInterrupt = 100;
+            result_regen                = power_regen_mp5 + power_regen;
+            result_regen_interrupted    = power_regen_mp5 + CalculatePct(power_regen, modManaRegenInterrupt);
             break;
         }
         case POWER_RAGE:
         case POWER_ENERGY:
         case POWER_RUNIC_POWER:
+        {
+            result_regen                = powerRegenInfo[AsUnderlyingType(power)].first;
+            result_regen_interrupted    = 0.f;
+            result_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, AsUnderlyingType(power));
+            result_regen_interrupted += static_cast<float>(GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, AsUnderlyingType(power))) / 5.f;
+            if (power != POWER_RUNIC_POWER)
+                result_regen += result_regen_interrupted;
+            break;
+        }
         default:
             break;
     }
