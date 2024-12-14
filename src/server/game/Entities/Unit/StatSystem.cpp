@@ -681,19 +681,9 @@ void Player::UpdatePowerRegen(Powers power)
         case POWER_MANA:
         {
             float rate = GetStat(STAT_SPIRIT) * GetStat(STAT_INTELLECT);
-            float power_regen = rate / 100.0f;
-            if (power_regen < 0.0f)
-                power_regen = 0.0f;
-            power_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, POWER_MANA);
-            float power_regen_mp5 = (GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, POWER_MANA) + m_baseManaRegen) / 5.0f;
-            AuraEffectList const& regenAura = GetAuraEffectsByType(SPELL_AURA_MOD_MANA_REGEN_FROM_STAT);
-            for (AuraEffectList::const_iterator i = regenAura.begin(); i != regenAura.end(); ++i)
-                power_regen_mp5 += GetStat(Stats((*i)->GetMiscValue())) * (*i)->GetAmount() / 500.0f;
-            int32 modManaRegenInterrupt = GetTotalAuraModifier(SPELL_AURA_MOD_MANA_REGEN_INTERRUPT);
-            if (modManaRegenInterrupt > 100)
-                modManaRegenInterrupt = 100;
-            result_regen                = power_regen_mp5 + power_regen;
-            result_regen_interrupted    = power_regen_mp5 + CalculatePct(power_regen, modManaRegenInterrupt);
+            float result_regen = rate / 200.0f;
+            if (result_regen < 0.0f)
+                result_regen = 0.0f;
             break;
         }
         case POWER_RAGE:
@@ -703,7 +693,7 @@ void Player::UpdatePowerRegen(Powers power)
             break;
     }
     if (powerRegenInfo[AsUnderlyingType(power)].second.has_value())
-        modifier *= sWorld->getRate(powerRegenInfo[AsUnderlyingType(power)].second.value()); // Config rate
+        modifier *= sWorld->getRate(powerRegenInfo[AsUnderlyingType(power)].second.value());
     result_regen                *= modifier;
     result_regen_interrupted    *= modifier;
     if (power != POWER_MANA)
@@ -720,62 +710,57 @@ float Player::GetPowerRegen(Powers power) const
 {
     if (power == POWER_HEALTH || power >= MAX_POWERS)
         return 0.f;
-
     bool interrupted =  HasAuraType(SPELL_AURA_INTERRUPT_REGEN) ||
                         (power == POWER_MANA && IsUnderLastManaUseEffect()) ||
                         (power != POWER_MANA && IsInCombat());
-
     float regen = GetFloatValue((interrupted ? UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER : UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER) + AsUnderlyingType(power));
     if (power != POWER_MANA)
         regen += (power == POWER_ENERGY || !interrupted) ? powerRegenInfo[AsUnderlyingType(power)].first : 0.f;
-
     return regen;
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdateRuneRegen(RuneType rune)
 {
     if (rune >= NUM_RUNE_TYPES)
         return;
-
     uint32 cooldown = 0;
-
     for (uint32 i = 0; i < MAX_RUNES; ++i)
         if (GetBaseRune(i) == rune)
         {
             cooldown = GetRuneBaseCooldown(i);
             break;
         }
-
     if (cooldown <= 0)
         return;
-
     float regen = float(1 * IN_MILLISECONDS) / float(cooldown);
     SetFloatValue(PLAYER_RUNE_REGEN_1 + uint8(rune), regen);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::_ApplyAllStatBonuses()
 {
     SetCanModifyStats(false);
-
     _ApplyAllAuraStatMods();
     _ApplyAllItemMods();
-
     SetCanModifyStats(true);
-
     UpdateAllStats();
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::_RemoveAllStatBonuses()
 {
     SetCanModifyStats(false);
-
     _RemoveAllItemMods();
     _RemoveAllAuraStatMods();
-
     SetCanModifyStats(true);
-
     UpdateAllStats();
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 /*#######################################
 ########                         ########
