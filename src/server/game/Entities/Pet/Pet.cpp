@@ -721,57 +721,28 @@ void Pet::LoseHappiness()
     ModifyPower(POWER_HAPPINESS, -addvalue);
 }
 
+// --------------------------------------------------------------------------------------------------------
+
 HappinessState Pet::GetHappinessState()
 {
-    if (GetPower(POWER_HAPPINESS) < HAPPINESS_LEVEL_SIZE)
-        return UNHAPPY;
-    else if (GetPower(POWER_HAPPINESS) >= HAPPINESS_LEVEL_SIZE * 2)
         return HAPPY;
-    else
-        return CONTENT;
 }
+
+// --------------------------------------------------------------------------------------------------------
 
 void Pet::Remove(PetSaveMode mode, bool returnreagent)
 {
     GetOwner()->RemovePet(this, mode, returnreagent);
 }
 
+// --------------------------------------------------------------------------------------------------------
+
 void Pet::GivePetXP(uint32 xp)
 {
-    if (getPetType() != HUNTER_PET)
-        return;
-
-    if (xp < 1)
-        return;
-
-    if (!IsAlive())
-        return;
-
-    uint8 maxlevel = std::min((uint8)sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL), GetOwner()->GetLevel());
-    uint8 petlevel = GetLevel();
-
-    // If pet is detected to be at, or above(?) the players level, don't hand out XP
-    if (petlevel >= maxlevel)
-       return;
-
-    uint32 nextLvlXP = GetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP);
-    uint32 curXP = GetUInt32Value(UNIT_FIELD_PETEXPERIENCE);
-    uint32 newXP = curXP + xp;
-
-    // Check how much XP the pet should receive, and hand off have any left from previous levelups
-    while (newXP >= nextLvlXP && petlevel < maxlevel)
-    {
-        // Subtract newXP from amount needed for nextlevel, and give pet the level
-        newXP -= nextLvlXP;
-        ++petlevel;
-
-        GivePetLevel(petlevel);
-
-        nextLvlXP = GetUInt32Value(UNIT_FIELD_PETNEXTLEVELEXP);
-    }
-    // Not affected by special conditions - give it new XP
-    SetPetExperience(petlevel < maxlevel ? newXP : 0);
+    return;
 }
+
+// --------------------------------------------------------------------------------------------------------
 
 void Pet::GivePetLevel(uint8 level)
 {
