@@ -1761,17 +1761,16 @@ void Pet::resetTalentsForAllPetsOf(Player* owner, Pet* onlinePet /*= nullptr*/, 
 
 void Pet::InitTalentForLevel()
 {
-    uint32 talentPointsForLevel = 0;
     resetTalents(); 
     SetFreeTalentPoints(0);
     if (!m_loading)
         GetOwner()->SendTalentsInfoData(true);
 }
 
-//uint8 Pet::GetMaxTalentPointsForLevel(uint8 level) const
-//{
-    //return 0;
-//}
+uint8 Pet::GetMaxTalentPointsForLevel(uint8 level) const
+{
+    return 0;
+}
 
 void Pet::ToggleAutocast(SpellInfo const* spellInfo, bool apply)
 {
