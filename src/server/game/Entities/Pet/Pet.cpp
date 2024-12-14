@@ -1761,25 +1761,17 @@ void Pet::resetTalentsForAllPetsOf(Player* owner, Pet* onlinePet /*= nullptr*/, 
 
 void Pet::InitTalentForLevel()
 {
-    uint8 level = GetLevel();
-    uint32 talentPointsForLevel = GetMaxTalentPointsForLevel(level);
-    // Reset talents in case low level (on level down) or wrong points for level (hunter can unlearn TP increase talent)
-    if (talentPointsForLevel == 0 || m_usedTalentCount > talentPointsForLevel)
-        resetTalents(); // Remove all talent points
-
-    SetFreeTalentPoints(talentPointsForLevel - m_usedTalentCount);
-
+    uint32 talentPointsForLevel = 0;
+    resetTalents(); 
+    SetFreeTalentPoints(0);
     if (!m_loading)
         GetOwner()->SendTalentsInfoData(true);
 }
 
-uint8 Pet::GetMaxTalentPointsForLevel(uint8 level) const
-{
-    uint8 points = (level >= 20) ? ((level - 16) / 4) : 0;
-    // Mod points from owner SPELL_AURA_MOD_PET_TALENT_POINTS
-    points += GetOwner()->GetTotalAuraModifier(SPELL_AURA_MOD_PET_TALENT_POINTS);
-    return points;
-}
+//uint8 Pet::GetMaxTalentPointsForLevel(uint8 level) const
+//{
+    //return 0;
+//}
 
 void Pet::ToggleAutocast(SpellInfo const* spellInfo, bool apply)
 {
