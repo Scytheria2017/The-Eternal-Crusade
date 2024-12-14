@@ -76,7 +76,7 @@ void Unit::UpdateDamagePhysical(WeaponAttackType attType)
 bool Player::UpdateStats(Stats stat)
 {
     if (stat > STAT_SPIRIT)
-        return false;
+        UpdateAllStats();
     float value  = GetTotalStatValue(stat);
     SetStat(stat, int32(value));
     switch (stat)
@@ -108,7 +108,6 @@ bool Player::UpdateStats(Stats stat)
             UpdateSpellDamageAndHealingBonus();
             break;
         case STAT_SPIRIT:
-            //UpdateHealthRegen();
             UpdatePowerRegen(POWER_MANA);
             UpdatePowerRegen(POWER_ENERGY);
             UpdateSpellDamageAndHealingBonus();            
@@ -172,7 +171,6 @@ bool Player::UpdateAllStats()
     UpdatePowerRegen(POWER_MANA);
     UpdatePowerRegen(POWER_RAGE);
     UpdatePowerRegen(POWER_ENERGY);
-    UpdatePowerRegen(POWER_RUNIC_POWER);
     UpdateExpertise(BASE_ATTACK);
     UpdateExpertise(OFF_ATTACK);
     RecalculateRating(CR_ARMOR_PENETRATION);
@@ -685,7 +683,7 @@ void Player::UpdatePowerRegen(Powers power)
         case POWER_MANA:
         {
             float spirit = GetStat(STAT_SPIRIT);
-            float power_regen = std::sqrt(spirit * 2.0f) * 0.5f;
+            float power_regen = std::sqrt(spirit * 2.0f) * 0.1f;
             power_regen *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_POWER_REGEN_PERCENT, POWER_MANA);
             float power_regen_mp5 = (GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_POWER_REGEN, POWER_MANA) + m_baseManaRegen) / 5.0f;
             AuraEffectList const& regenAura = GetAuraEffectsByType(SPELL_AURA_MOD_MANA_REGEN_FROM_STAT);
