@@ -1079,9 +1079,7 @@ void Player::Update(uint32 p_time)
 void Player::setDeathState(DeathState s)
 {
     uint32 ressSpellId = 0;
-
     bool cur = IsAlive();
-
     if (s == JUST_DIED)
     {
         if (!cur)
@@ -1089,41 +1087,26 @@ void Player::setDeathState(DeathState s)
             TC_LOG_ERROR("entities.player", "Player::setDeathState: Attempt to kill a dead player '{}' ({})", GetName(), GetGUID().ToString());
             return;
         }
-
-        // drunken state is cleared on death
         SetDrunkValue(0);
-        // lost combo points at any target (targeted combo points clear in Unit::setDeathState)
         ClearComboPoints();
-
         ClearResurrectRequestData();
-
-        //FIXME: is pet dismissed at dying or releasing spirit? if second, add setDeathState(DEAD) to HandleRepopRequest and define pet unsummon here with (s == DEAD)
         RemovePet(nullptr, PET_SAVE_NOT_IN_SLOT, true);
-
-        // save value before aura remove in Unit::setDeathState
         ressSpellId = GetUInt32Value(PLAYER_SELF_RES_SPELL);
-
-        // passive spell
         if (!ressSpellId)
             ressSpellId = GetResurrectionSpellId();
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DEATH_AT_MAP, 1);
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DEATH, 1);
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DEATH_IN_DUNGEON, 1);
-
-        // reset all death criterias
         ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_CONDITION_NO_DEATH, 0);
     }
-
     Unit::setDeathState(s);
-
-    // restore resurrection spell id for player after aura remove
     if (s == JUST_DIED && cur && ressSpellId)
         SetUInt32Value(PLAYER_SELF_RES_SPELL, ressSpellId);
-
     if (IsAlive() && !cur)
-        //clear aura case after resurrection by another way (spells will be applied before next death)
         SetUInt32Value(PLAYER_SELF_RES_SPELL, 0);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 bool Player::BuildEnumData(PreparedQueryResult result, WorldPacket* data)
 {
