@@ -11,46 +11,6 @@
 #include <numeric>
 
 // ----------------------------------------------------------------------------------------------------------------------------
-// _ModifyUint32                                -- No changes
-// Unit::UpdateAllResistances                   -- No changes
-// Unit::UpdateDamagePhysical                   -- No changes
-// Player::UpdateStats                          -- Calls multiple player-wide updates
-// Player::ApplySpellPowerBonus                 -- No changes
-// Player::UpdateSpellDamageAndHealingBonus     -- Based on Intellect and Spirit - probably borked???
-// Player::UpdateAllStats                       -- Calls multiple player-wide updates
-// Player::ApplySpellPenetrationBonus           -- No changes (but Spell Penetration is deprecated)
-// Player::UpdateResistances                    -- No changes
-// Player::UpdateArmor                          -- Removed Agility and pct bonuses (e.g. talents with +10% armor... how?)
-// Player::GetHealthBonusFromStamina            -- No changes
-// Player::GetManaBonusFromIntellect            -- Reduced to 10 pts per Intellect (but probably deprecated in UpdateMaxPower)
-// Player::UpdateMaxHealth                      -- No changes
-// Player::UpdateMaxPower                       -- Energy positively increased by Stamina (0.5 per pt over 20)
-// Player::ApplyFeralAPBonus                    -- No changes (but Feral Attack Power is deprecated)
-// Player::UpdateAttackPowerAndDamage           -- Major simplicity changes - MAP = Strength - 10, RAP = Agility - 10
-// Player::UpdateShieldBlockValue               -- No changes, only calls GetShieldBlockValue
-// Player::CalculateMinMaxDamage                -- Some simplification, feral forms = 1.25 to 1.50 * normal damage
-// Player::UpdateDefenseBonusesMod              -- No changes
-// Player::UpdateBlockPercentage                -- (if can block) 5+((strength-20)/5)
-// Player::UpdateCritPercentage                 -- Now based on STR/AGI (melee) or AGI (ranged).  Offhand% = half of mainhand%
-// Player::UpdateAllCritPercentages             -- No changes
-// const m_diminishing_k                        -- No changes (probably deprecated)
-// CalculateDiminishingReturns                  -- No changes (probably deprecated)
-// const miss_cap                               -- No changes (probably deprecated)
-// Player::GetMissPercentageFromDefense         -- No changes (probably deprecated)
-// const parry_cap                              -- No changes (probably deprecated)
-// Player::UpdateParryPercentage                -- (if can parry) 5+((agility-20)/5)
-// const dodge_cap                              -- No changes (probably deprecated)
-// Player::UpdateDodgePercentage                -- Now based on Agility and affected by Armor
-// Player::UpdateSpellCritChance                -- Simply = Intellect / 5 (+mods)
-// Player::UpdateArmorPenetration               -- No changes
-// Player::UpdateMeleeHitChances                -- No changes
-// Player::UpdateRangedHitChances               -- No changes
-// Player::UpdateSpellHitChances                -- No changes
-// Player::UpdateAllSpellCritChances            -- No changes
-// 
-//
-// 731
-// ----------------------------------------------------------------------------------------------------------------------------
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
 {
@@ -546,76 +506,78 @@ void Player::UpdateAllCritPercentages()
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-float const m_diminishing_k[MAX_CLASSES] =
-{
-    0.9880f,  // Warrior
-    0.9880f,  // Paladin
-    0.9880f,  // Hunter
-    0.9880f,  // Rogue
-    0.9880f,  // Priest
-    0.9880f,  // DK
-    0.9880f,  // Shaman
-    0.9880f,  // Mage
-    0.9880f,  // Warlock
-    0.9880f,  // ??
-    0.9880f   // Druid
-};
+//float const m_diminishing_k[MAX_CLASSES] =
+//{
+    //0.9880f,  // Warrior
+    //0.9880f,  // Paladin
+    //0.9880f,  // Hunter
+    //0.9880f,  // Rogue
+    //0.9880f,  // Priest
+    //0.9880f,  // DK
+    //0.9880f,  // Shaman
+    //0.9880f,  // Mage
+    //0.9880f,  // Warlock
+    //0.9880f,  // ??
+    //0.9880f   // Druid
+//};
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-float CalculateDiminishingReturns(float const (&capArray)[MAX_CLASSES], uint8 playerClass, float nonDiminishValue, float diminishValue)
-{
-    uint32 const classIdx = playerClass - 1;
-    float const k = m_diminishing_k[classIdx];
-    float const c = capArray[classIdx];
-    float result = c * diminishValue / (diminishValue + c * k);
-    result += nonDiminishValue;
-    return result;
-}
+//float CalculateDiminishingReturns(float const (&capArray)[MAX_CLASSES], uint8 playerClass, float nonDiminishValue, float diminishValue)
+//{
+    //uint32 const classIdx = playerClass - 1;
+    //float const k = m_diminishing_k[classIdx];
+    //float const c = capArray[classIdx];
+    //float result = c * diminishValue / (diminishValue + c * k);
+    //result += nonDiminishValue;
+    //return result;
+//}
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-float const miss_cap[MAX_CLASSES] =
-{
-    16.00f,     // Warrior
-    16.00f,     // Paladin
-    16.00f,     // Hunter
-    16.00f,     // Rogue
-    16.00f,     // Priest
-    16.00f,     // DK
-    16.00f,     // Shaman
-    16.00f,     // Mage
-    16.00f,     // Warlock
-    16.00f,     // ??
-    16.00f      // Druid
-};
+//float const miss_cap[MAX_CLASSES] =
+//{
+    //16.00f,     // Warrior
+    //16.00f,     // Paladin
+    //16.00f,     // Hunter
+    //16.00f,     // Rogue
+    //16.00f,     // Priest
+    //16.00f,     // DK
+    //16.00f,     // Shaman
+    //16.00f,     // Mage
+    //16.00f,     // Warlock
+    //16.00f,     // ??
+    //16.00f      // Druid
+//};
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
 float Player::GetMissPercentageFromDefense() const
 {
-    float diminishing = 0.0f, nondiminishing = 0.0f;
-    nondiminishing += (int32(GetSkillValue(SKILL_DEFENSE)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
-    diminishing += (GetRatingBonusValue(CR_DEFENSE_SKILL) * 0.04f);
-    return CalculateDiminishingReturns(miss_cap, GetClass(), nondiminishing, diminishing);
+    // Blanket 5% miss chance for all melee attacks
+    return 5.0f;
+    //float diminishing = 0.0f, nondiminishing = 0.0f;
+    //nondiminishing += (int32(GetSkillValue(SKILL_DEFENSE)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
+    //diminishing += (GetRatingBonusValue(CR_DEFENSE_SKILL) * 0.04f);
+    //return CalculateDiminishingReturns(miss_cap, GetClass(), nondiminishing, diminishing);
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-float const parry_cap[MAX_CLASSES] =
-{
-    0.0f,           // Warrior
-    0.0f,           // Paladin
-    0.0f,           // Hunter
-    0.0f,           // Rogue
-    0.0f,           // Priest
-    0.0f,           // DK
-    0.0f,           // Shaman
-    0.0f,           // Mage
-    0.0f,           // Warlock
-    0.0f,           // ??
-    0.0f            // Druid
-};
+//float const parry_cap[MAX_CLASSES] =
+//{
+    //0.0f,           // Warrior
+    //0.0f,           // Paladin
+    //0.0f,           // Hunter
+    //0.0f,           // Rogue
+    //0.0f,           // Priest
+    //0.0f,           // DK
+    //0.0f,           // Shaman
+    //0.0f,           // Mage
+    //0.0f,           // Warlock
+    //0.0f,           // ??
+    //0.0f            // Druid
+//};
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -639,20 +601,20 @@ void Player::UpdateParryPercentage()
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-float const dodge_cap[MAX_CLASSES] =
-{
-    0.0f,           // Warrior
-    0.0f,           // Paladin
-    0.0f,           // Hunter
-    0.0f,           // Rogue
-    0.0f,           // Priest
-    0.0f,           // DK
-    0.0f,           // Shaman
-    0.0f,           // Mage
-    0.0f,           // Warlock
-    0.0f,           // ??
-    0.0f            // Druid
-};
+//float const dodge_cap[MAX_CLASSES] =
+//{
+    //0.0f,           // Warrior
+    //0.0f,           // Paladin
+    //0.0f,           // Hunter
+    //0.0f,           // Rogue
+    //0.0f,           // Priest
+    //0.0f,           // DK
+    //0.0f,           // Shaman
+    //0.0f,           // Mage
+    //0.0f,           // Warlock
+    //0.0f,           // ??
+    //0.0f            // Druid
+//};
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -696,7 +658,6 @@ void Player::UpdateSpellCritChance(uint32 school)
 
 void Player::UpdateArmorPenetration(int32 amount)
 {
-    // Store Rating Value
     SetUInt32Value(PLAYER_FIELD_COMBAT_RATING_1 + AsUnderlyingType(CR_ARMOR_PENETRATION), amount);
 }
 
@@ -736,18 +697,14 @@ void Player::UpdateExpertise(WeaponAttackType attack)
 {
     if (attack == RANGED_ATTACK)
         return;
-
     int32 expertise = int32(GetRatingBonusValue(CR_EXPERTISE));
-
     Item const* weapon = GetWeaponForAttack(attack, true);
     expertise += GetTotalAuraModifier(SPELL_AURA_MOD_EXPERTISE, [weapon](AuraEffect const* aurEff) -> bool
     {
         return aurEff->GetSpellInfo()->IsItemFitToSpellRequirements(weapon);
     });
-
     if (expertise < 0)
         expertise = 0;
-
     switch (attack)
     {
         case BASE_ATTACK:
@@ -761,16 +718,22 @@ void Player::UpdateExpertise(WeaponAttackType attack)
     }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::ApplyManaRegenBonus(int32 amount, bool apply)
 {
     _ModifyUInt32(apply, m_baseManaRegen, amount);
     UpdatePowerRegen(POWER_MANA);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------
+
 void Player::ApplyHealthRegenBonus(int32 amount, bool apply)
 {
     _ModifyUInt32(apply, m_baseHealthRegen, amount);
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 static std::pair<float, Optional<Rates>> const powerRegenInfo[MAX_POWERS] =
 {
@@ -782,6 +745,8 @@ static std::pair<float, Optional<Rates>> const powerRegenInfo[MAX_POWERS] =
     { 0.f,      std::nullopt                }, // POWER_RUNE
     { -12.5f,   RATE_POWER_RUNICPOWER_LOSS  }  // POWER_RUNIC_POWER,    -1.25 runic power per second
 };
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void Player::UpdatePowerRegen(Powers power)
 {
