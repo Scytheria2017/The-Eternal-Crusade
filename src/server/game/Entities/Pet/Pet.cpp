@@ -710,22 +710,18 @@ void Pet::Update(uint32 diff)
     Creature::Update(diff);
 }
 
+// -----------------------------------------------------------------------------------------------------------------
+
 void Pet::LoseHappiness()
 {
-    uint32 curValue = GetPower(POWER_HAPPINESS);
-    if (curValue <= 0)
-        return;
-    int32 addvalue = 670;                                   //value is 70/35/17/8/4 (per min) * 1000 / 8 (timer 7.5 secs)
-    if (IsInCombat())                                        //we know in combat happiness fades faster, multiplier guess
-        addvalue = int32(addvalue * 1.5f);
-    ModifyPower(POWER_HAPPINESS, -addvalue);
+    ModifyPower(POWER_HAPPINESS, 1000);
 }
 
 // --------------------------------------------------------------------------------------------------------
 
 HappinessState Pet::GetHappinessState()
 {
-        return HAPPY;
+    return HAPPY;
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -746,19 +742,19 @@ void Pet::GivePetXP(uint32 xp)
 
 void Pet::GivePetLevel(uint8 level)
 {
-    if (!level || level == GetLevel())
+    if (!level || level == 80)
         return;
-
     if (getPetType() == HUNTER_PET)
     {
         SetPetExperience(0);
-        SetPetNextLevelExperience(uint32(sObjectMgr->GetXPForLevel(level)*PET_XP_FACTOR));
+        SetPetNextLevelExperience(0);
     }
-
-    InitStatsForLevel(level);
+    InitStatsForLevel(80);
     InitLevelupSpellsForLevel();
     InitTalentForLevel();
 }
+
+// --------------------------------------------------------------------------------------------------------
 
 bool Pet::CreateBaseAtCreature(Creature* creature)
 {
@@ -806,6 +802,8 @@ bool Pet::CreateBaseAtCreatureInfo(CreatureTemplate const* cinfo, Unit* owner)
     return true;
 }
 
+// --------------------------------------------------------------------------------------------------------
+
 bool Pet::CreateBaseAtTamed(CreatureTemplate const* cinfo, Map* map, uint32 phaseMask)
 {
     TC_LOG_DEBUG("entities.pet", "Pet::CreateBaseForTamed");
@@ -813,14 +811,12 @@ bool Pet::CreateBaseAtTamed(CreatureTemplate const* cinfo, Map* map, uint32 phas
     uint32 petId = sObjectMgr->GeneratePetNumber();
     if (!Create(guid, map, phaseMask, cinfo->Entry, petId))
         return false;
-
     SetMaxPower(POWER_HAPPINESS, GetCreatePowerValue(POWER_HAPPINESS));
     SetPower(POWER_HAPPINESS, 166500);
     SetPetNameTimestamp(0);
     SetPetExperience(0);
-    SetPetNextLevelExperience(uint32(sObjectMgr->GetXPForLevel(GetLevel()+1)*PET_XP_FACTOR));
+    SetPetNextLevelExperience(0);
     ReplaceAllNpcFlags(UNIT_NPC_FLAG_NONE);
-
     if (cinfo->type == CREATURE_TYPE_BEAST)
     {
         SetClass(CLASS_WARRIOR);
@@ -828,9 +824,10 @@ bool Pet::CreateBaseAtTamed(CreatureTemplate const* cinfo, Map* map, uint32 phas
         SetSheath(SHEATH_STATE_MELEE);
         ReplaceAllPetFlags(UNIT_PET_FLAG_CAN_BE_RENAMED | UNIT_PET_FLAG_CAN_BE_ABANDONED);
     }
-
     return true;
 }
+
+// --------------------------------------------------------------------------------------------------------
 
 /// @todo Move stat mods code to pet passive auras
 bool Guardian::InitStatsForLevel(uint8 petlevel)
@@ -1104,39 +1101,31 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     return true;
 }
 
+// -----------------------------------------------------------------------------------------------------------------
+
 bool Pet::HaveInDiet(ItemTemplate const* item) const
 {
     if (!item->FoodType)
         return false;
-
     CreatureTemplate const* cInfo = GetCreatureTemplate();
     if (!cInfo)
         return false;
-
     CreatureFamilyEntry const* cFamily = sCreatureFamilyStore.LookupEntry(cInfo->family);
     if (!cFamily)
         return false;
-
     uint32 diet = cFamily->PetFoodMask;
     uint32 FoodMask = 1 << (item->FoodType-1);
     return (diet & FoodMask) != 0;
 }
 
+// -----------------------------------------------------------------------------------------------------------------
+
 uint32 Pet::GetCurrentFoodBenefitLevel(uint32 itemlevel) const
 {
-    // -5 or greater food level
-    if (GetLevel() <= itemlevel + 5)                         //possible to feed level 60 pet with level 55 level food for full effect
-        return 35000;
-    // -10..-6
-    else if (GetLevel() <= itemlevel + 10)                   //pure guess, but sounds good
-        return 17000;
-    // -14..-11
-    else if (GetLevel() <= itemlevel + 14)                   //level 55 food gets green on 70, makes sense to me
-        return 8000;
-    // -15 or less
-    else
-        return 0;                                           //food too low level
+    return 136;
 }
+
+// -----------------------------------------------------------------------------------------------------------------
 
 void Pet::_LoadSpells(PreparedQueryResult result)
 {
