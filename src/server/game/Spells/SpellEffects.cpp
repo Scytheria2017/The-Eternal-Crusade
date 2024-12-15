@@ -689,6 +689,12 @@ void Spell::EffectSchoolDMG()
             damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, (uint32)damage, SPELL_DIRECT_DAMAGE);
         }
 
+        damage = std::sqrt(std::sqrt(damage)) * 5.0f;
+        if (damage < 5.0f)
+            damage = 5.0f;
+        if (damage > 75.0f)
+            damage = 75.0f;
+
         m_damage += damage;
     }
 }

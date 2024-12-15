@@ -876,9 +876,9 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
 
     // Resistance
     // Hunters pet should not inherit resistances from creature_template, they have separate auras for that
-    if (!IsHunterPet())
-        for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
-            SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_START + i), BASE_VALUE, float(cinfo->resistance[i]));
+    //if (!IsHunterPet())
+        //for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+            //SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_START + i), BASE_VALUE, float(cinfo->resistance[i]));
 
     // Health, Mana or Power, Armor
     PetLevelInfo const* pInfo = sObjectMgr->GetPetLevelInfo(creature_ID, petlevel);
