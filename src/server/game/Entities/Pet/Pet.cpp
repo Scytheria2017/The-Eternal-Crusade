@@ -861,7 +861,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     // Define Hunter Pets by Type Here???
     // ----
     SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
-    SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, 0.0f));
+    SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, 0.0f);
     SetAttackTime(BASE_ATTACK, BASE_ATTACK_TIME);
     SetAttackTime(OFF_ATTACK, BASE_ATTACK_TIME);
     SetAttackTime(RANGED_ATTACK, BASE_ATTACK_TIME);
