@@ -714,7 +714,7 @@ void Pet::Update(uint32 diff)
 
 void Pet::LoseHappiness()
 {
-    ModifyPower(POWER_HAPPINESS, 1000);
+    ModifyPower(POWER_HAPPINESS, 10000);
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -857,9 +857,6 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
         }
     }
     uint32 creature_ID = (petType == HUNTER_PET) ? 1 : cinfo->Entry;
-    // -----
-    // Define Hunter Pets by Type Here???
-    // ----
     SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
     SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, 0.0f);
     SetAttackTime(BASE_ATTACK, BASE_ATTACK_TIME);
@@ -931,9 +928,15 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
         {
             SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(petlevel / 3.0f));
             SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(petlevel / 2.0f));
-            break;
+            break;        
         }
     }
+    // Here we can adjust stats based on level (75 to 83) and creature family?
+    // uint32 pettyp = GetCreatureTemplate()->type;
+    // uint32 petfam = GetCreatureTemplate()->family;
+    // 
+    //
+    //
     UpdateAllStats();
     SetFullHealth();
     SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
