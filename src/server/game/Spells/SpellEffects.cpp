@@ -689,7 +689,15 @@ void Spell::EffectSchoolDMG()
             damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, (uint32)damage, SPELL_DIRECT_DAMAGE);
         }
 
-        if (unitCaster->GetTypeId != TYPEID_PLAYER)
+        // ----------------------------------------------------------
+        // FLATTEN NON-PLAYER SPELL DAMAGE
+        // -=--------------------------------------------------------
+
+        if (unitCaster->GetTypeId() == TYPEID_PLAYER)
+        {
+            m_damage += damage;
+        }
+        else
         {
             damage = std::sqrt(std::sqrt(damage)) * 5.0f;
             float damage2 = damage * 0.035;
@@ -698,9 +706,10 @@ void Spell::EffectSchoolDMG()
                 damage = 5.0f;
             if (damage > 75.0f)
                 damage = 75.0f;
+            m_damage += damage;    
         }
 
-        m_damage += damage;
+        // ----------------------------------------------------------
     }
 }
 
