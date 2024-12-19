@@ -85,7 +85,8 @@ bool Player::UpdateStats(Stats stat)
             UpdateBlockPercentage();
             UpdateShieldBlockValue();
             UpdateAttackPowerAndDamage(false);
-            UpdateAllCritPercentages();
+            UpdateCritPercentage(BASE_ATTACK);
+            UpdateCritPercentage(OFF_ATTACK);
             UpdateSpeed(MOVE_WALK);
             UpdateSpeed(MOVE_RUN);
             UpdateSpeed(MOVE_RUN_BACK);
@@ -93,7 +94,9 @@ bool Player::UpdateStats(Stats stat)
             UpdateSpeed(MOVE_SWIM_BACK);
             break;
         case STAT_AGILITY:
-            UpdateAllCritPercentages();
+            UpdateCritPercentage(BASE_ATTACK);
+            UpdateCritPercentage(OFF_ATTACK);
+            UpdateCritPercentage(RANGED_ATTACK);
             UpdateDodgePercentage();
             UpdateParryPercentage();
             UpdateAttackPowerAndDamage(true);
@@ -163,7 +166,9 @@ bool Player::UpdateAllStats()
     for (uint8 i = POWER_MANA; i < MAX_POWERS; ++i)
         UpdateMaxPower(Powers(i));
     UpdateAllRatings();
-    UpdateAllCritPercentages();
+    UpdateCritPercentage(BASE_ATTACK);
+    UpdateCritPercentage(OFF_ATTACK);
+    UpdateCritPercentage(RANGED_ATTACK);
     UpdateAllSpellCritChances();
     UpdateDefenseBonusesMod();
     UpdateShieldBlockValue();
@@ -456,27 +461,33 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
     BaseModGroup modGroup;
     uint16 index;
     CombatRating cr;
+    float mainh = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 100.0f;
+    float offh = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 150.0f;
+    float rang = (GetStat(STAT_AGILITY) * GetStat(STAT_AGILITY)) / 100.0f;
     float value = 0.0f;
+    SetBaseModPctValue(CRIT_PERCENTAGE, mainh);
+    SetBaseModPctValue(OFFHAND_CRIT_PERCENTAGE, offh);
+    SetBaseModPctValue(RANGED_CRIT_PERCENTAGE, rang);
     switch (attType)
     {
         case OFF_ATTACK:
             modGroup = OFFHAND_CRIT_PERCENTAGE;
             index = PLAYER_OFFHAND_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
-            value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
+            value = mainh + GetRatingBonusValue(cr);
             break;
         case RANGED_ATTACK:
             modGroup = RANGED_CRIT_PERCENTAGE;
             index = PLAYER_RANGED_CRIT_PERCENTAGE;
             cr = CR_CRIT_RANGED;
-            value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
+            value = offh + GetRatingBonusValue(cr);
             break;
         case BASE_ATTACK:
         default:
             modGroup = CRIT_PERCENTAGE;
             index = PLAYER_CRIT_PERCENTAGE;
             cr = CR_CRIT_MELEE;
-            value = GetBaseModValue(modGroup, FLAT_MOD) + GetRatingBonusValue(cr);
+            value = rang + GetRatingBonusValue(cr);
             break;
     }
     if (value < 0.0f)
@@ -490,9 +501,6 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
 
 void Player::UpdateAllCritPercentages()
 {
-    SetBaseModPctValue(CRIT_PERCENTAGE, (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 100.0f);
-    SetBaseModPctValue(OFFHAND_CRIT_PERCENTAGE, (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 150.0f);
-    SetBaseModPctValue(RANGED_CRIT_PERCENTAGE, (GetStat(STAT_AGILITY) * GetStat(STAT_AGILITY)) / 100.0f);
     UpdateCritPercentage(BASE_ATTACK);
     UpdateCritPercentage(OFF_ATTACK);
     UpdateCritPercentage(RANGED_ATTACK);
