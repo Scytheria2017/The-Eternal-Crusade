@@ -465,9 +465,9 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
     float offh = (GetStat(STAT_STRENGTH) * GetStat(STAT_AGILITY)) / 150.0f;
     float rang = (GetStat(STAT_AGILITY) * GetStat(STAT_AGILITY)) / 100.0f;
     float value = 0.0f;
-    SetBaseModPctValue(CRIT_PERCENTAGE, mainh);
-    SetBaseModPctValue(OFFHAND_CRIT_PERCENTAGE, offh);
-    SetBaseModPctValue(RANGED_CRIT_PERCENTAGE, rang);
+    // SetBaseModPctValue(CRIT_PERCENTAGE, mainh);
+    // SetBaseModPctValue(OFFHAND_CRIT_PERCENTAGE, offh);
+    // SetBaseModPctValue(RANGED_CRIT_PERCENTAGE, rang);
     switch (attType)
     {
         case OFF_ATTACK:
