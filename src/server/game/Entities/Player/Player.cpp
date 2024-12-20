@@ -24267,27 +24267,7 @@ uint32 Player::GetBarberShopCost(uint8 newhairstyle, uint8 newhaircolor, uint8 n
 
 void Player::InitGlyphsForLevel()
 {
-    for (uint32 i = 0; i < sGlyphSlotStore.GetNumRows(); ++i)
-        if (GlyphSlotEntry const* gs = sGlyphSlotStore.LookupEntry(i))
-            if (gs->Tooltip)
-                SetGlyphSlot(gs->Tooltip - 1, gs->ID);
-
-    uint8 level = GetLevel();
-    uint32 value = 0;
-
-    // 0x3F = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 for 80 level
-    if (level >= 15)
-        value |= (0x01 | 0x02);
-    if (level >= 30)
-        value |= 0x08;
-    if (level >= 50)
-        value |= 0x04;
-    if (level >= 70)
-        value |= 0x10;
-    if (level >= 80)
-        value |= 0x20;
-
-    SetUInt32Value(PLAYER_GLYPHS_ENABLED, value);
+    SetUInt32Value(PLAYER_GLYPHS_ENABLED, 0);
 }
 
 void Player::SetGlyph(uint8 slot, uint32 glyph)
@@ -24657,18 +24637,7 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
 
 uint32 Player::CalculateTalentsPoints() const
 {
-    uint32 baseForLevel = GetLevel() < 10 ? 0 : GetLevel() - 9;
-
-    if (GetClass() != CLASS_DEATH_KNIGHT || GetMapId() != 609)
-        return uint32(baseForLevel * sWorld->getRate(RATE_TALENT));
-
-    uint32 talentPointsForLevel = GetLevel() < 56 ? 0 : GetLevel() - 55;
-    talentPointsForLevel += GetQuestRewardedTalentCount();
-
-    if (talentPointsForLevel > baseForLevel)
-        talentPointsForLevel = baseForLevel;
-
-    return uint32(talentPointsForLevel * sWorld->getRate(RATE_TALENT));
+    return 0;
 }
 
 bool Player::CanFlyInZone(uint32 mapid, uint32 zone, SpellInfo const* bySpell) const
