@@ -8519,7 +8519,7 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
 
     if (GetTypeId() == TYPEID_PLAYER)
     {
-        armor = GetArmor();
+        armor = std::sqrt(GetArmor());
         strength = (GetStat(STAT_STRENGTH) - 20.0f) * 2.0f;
         if (armor > 100.0f)
             armor = 100.0f;
