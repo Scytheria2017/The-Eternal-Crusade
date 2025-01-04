@@ -539,7 +539,7 @@ void Player::UpdateDodgePercentage()
 {
     float value = 0.0f;
     float agility = GetStat(STAT_AGILITY);
-    float armor = GetArmor();
+    float armor = std::sqrt(GetArmor());
     value = (agility / 5.0f) - (armor / 10.0f);
     value += GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
     value += GetRatingBonusValue(CR_DODGE);
