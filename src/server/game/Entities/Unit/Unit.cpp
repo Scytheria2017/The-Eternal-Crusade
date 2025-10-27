@@ -82,7 +82,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#include <cmath>
+#include "Math.h"
 
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
@@ -8651,6 +8651,30 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
         float min_speed = CalculatePct(baseMinSpeed, minSpeedMod);
         if (speed < min_speed)
             speed = min_speed;
+    }
+
+    // TEC --- Player speed boosted by Agility
+    // TEC --- Player speed reduced by Armor (flat mod from items)
+    // TEC --- Player speed reduction reduced by Strength
+    if (GetTypeId() == TYPEID_PLAYER)
+    {
+        if (!IsMounted())
+        {
+            switch (mtype)
+            {
+                case MOVE_RUN:
+                case MOVE_RUN_BACK:
+                case MOVE_SWIM:
+                case MOVE_SWIM_BACK:
+                    float lvl = GetLevel()
+                    float agi = GetStat(STAT_AGILITY)
+                    float str = GetStat(STAT_STRENGTH) 
+                    float arm = GetFlatModifierValue(UNIT_MOD_ARMOR, BASE_VALUE);
+                    float enc = 1.0f - (0.15f * math::tanh(0.1f * ((agi / lvl) - (10.0f * arm / str))));
+                    speed *= enc;
+                default:
+                    break;
+        }        
     }
 
     SetSpeedRate(mtype, speed);
