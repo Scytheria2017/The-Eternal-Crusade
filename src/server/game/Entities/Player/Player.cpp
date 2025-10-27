@@ -12136,7 +12136,10 @@ void Player::RemoveItem(uint8 bag, uint8 slot, bool update)
             pItem->SendUpdateToPlayer(this);
     }
 
-    UpdateSpeed();
+    UpdateSpeed(MOVE_RUN);
+    UpdateSpeed(MOVE_RUN_BACK);
+    UpdateSpeed(MOVE_SWIM);
+    UpdateSpeed(MOVE_SWIM_BACK);
 
 }
 
