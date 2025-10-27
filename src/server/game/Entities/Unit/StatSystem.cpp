@@ -26,6 +26,7 @@
 #include "SpellMgr.h"
 #include "World.h"
 #include <numeric>
+#include <cmath>
 
 inline bool _ModifyUInt32(bool apply, uint32& baseValue, int32& amount)
 {
@@ -117,11 +118,17 @@ bool Player::UpdateStats(Stats stat)
     {
         case STAT_STRENGTH:
             UpdateShieldBlockValue();
-            UpdateSpeed();
+            UpdateSpeed(MOVE_RUN);
+            UpdateSpeed(MOVE_RUN_BACK);
+            UpdateSpeed(MOVE_SWIM);
+            UpdateSpeed(MOVE_SWIM_BACK);
             break;
         case STAT_AGILITY:
             UpdateArmor();
-            UpdateSpeed();
+            UpdateSpeed(MOVE_RUN);
+            UpdateSpeed(MOVE_RUN_BACK);
+            UpdateSpeed(MOVE_SWIM);
+            UpdateSpeed(MOVE_SWIM_BACK);
             UpdateAllCritPercentages();
             UpdateDodgePercentage();
             break;
@@ -238,7 +245,10 @@ bool Player::UpdateAllStats()
     RecalculateRating(CR_ARMOR_PENETRATION);
     UpdateAllResistances();
 
-    UpdateSpeed();
+    UpdateSpeed(MOVE_RUN);
+    UpdateSpeed(MOVE_RUN_BACK);
+    UpdateSpeed(MOVE_SWIM);
+    UpdateSpeed(MOVE_SWIM_BACK);
 
     return true;
 }
@@ -289,7 +299,10 @@ void Player::UpdateArmor()
     if (pet)
         pet->UpdateArmor();
 
-    UpdateSpeed();
+    UpdateSpeed(MOVE_RUN);
+    UpdateSpeed(MOVE_RUN_BACK);
+    UpdateSpeed(MOVE_SWIM);
+    UpdateSpeed(MOVE_SWIM_BACK);
 }
 
 float Player::GetHealthBonusFromStamina()

@@ -82,7 +82,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#include "Math.h"
+#include <cmath>
 
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
@@ -8665,11 +8665,11 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
                 case MOVE_RUN_BACK:
                 case MOVE_SWIM:
                 case MOVE_SWIM_BACK:
-                    float lvl = GetLevel()
-                    float agi = GetStat(STAT_AGILITY)
-                    float str = GetStat(STAT_STRENGTH) 
+                    float lvl = GetLevel();
+                    float agi = GetStat(STAT_AGILITY);
+                    float str = GetStat(STAT_STRENGTH);
                     float arm = GetFlatModifierValue(UNIT_MOD_ARMOR, BASE_VALUE);
-                    float enc = 1.0f - (0.15f * math::tanh(0.1f * ((agi / lvl) - (10.0f * arm / str))));
+                    float enc = 1.0f - (0.15f * cmath::tanh(0.1f * ((agi / lvl) - (10.0f * arm / str))));
                     speed *= enc;
                 default:
                     break;
