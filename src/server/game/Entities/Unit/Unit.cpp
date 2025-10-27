@@ -8658,24 +8658,19 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
     {
         if (!IsMounted())
         {
-            switch (mtype)
+            if (mtype == MOVE_RUN || mtype == MOVE_RUN_BACK || mtype == MOVE_SWIM || mtype == MOVE_SWIM_BACK)
             {
-                case MOVE_RUN:
-                case MOVE_RUN_BACK:
-                case MOVE_SWIM:
-                case MOVE_SWIM_BACK:
-                    float lvl = GetLevel();
-                    float agi = GetStat(STAT_AGILITY);
-                    float str = GetStat(STAT_STRENGTH);
-                    float arm = GetFlatModifierValue(UNIT_MOD_ARMOR, BASE_VALUE);
-                    float enc = (agi / lvl) - (10.0f * arm / str);
-                    if (enc < -1.0f)
-                        enc = -1.0f;
-                    if (enc > 1.0f)
-                        enc = 1.0f;
-                    speed = speed * (1.0f + (0.15f * enc));
-                default:
-                    break;
+                float lvl = GetLevel();
+                float agi = GetStat(STAT_AGILITY);
+                float str = GetStat(STAT_STRENGTH);
+                float arm = GetFlatModifierValue(UNIT_MOD_ARMOR, BASE_VALUE);
+                float enc = (agi / lvl) - (10.0f * arm / str);
+                if (enc < -1.0f)
+                    enc = -1.0f;
+                if (enc > 1.0f)
+                    enc = 1.0f;
+                speed = speed * (1.0f + (0.15f * enc));
+            }
         }        
     }
 
