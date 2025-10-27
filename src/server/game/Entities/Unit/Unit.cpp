@@ -1482,23 +1482,22 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
 
     // If this is a creature and it attacks from behind it has a probability to daze it's victim
     if ((damageInfo->HitOutCome == MELEE_HIT_CRIT || damageInfo->HitOutCome == MELEE_HIT_CRUSHING || damageInfo->HitOutCome == MELEE_HIT_NORMAL || damageInfo->HitOutCome == MELEE_HIT_GLANCING) &&
-        GetTypeId() != TYPEID_PLAYER && !ToCreature()->IsControlledByPlayer() && !victim->HasInArc(float(M_PI), this)
-        && (victim->GetTypeId() == TYPEID_PLAYER || !victim->ToCreature()->isWorldBoss())&& !victim->IsVehicle())
+        !victim->HasInArc(float(M_PI), this) && !victim->IsVehicle())
     {
-        // 20% base chance
-        float chance = 20.0f;
+        // 50% base chance
+        float chance = 50.0f;
 
         // there is a newbie protection, at level 10 just 7% base chance; assuming linear function
-        if (victim->GetLevel() < 30)
-            chance = 0.65f * victim->GetLevel() + 0.5f;
+        //if (victim->GetLevel() < 30)
+            //chance = 0.65f * victim->GetLevel() + 0.5f;
 
         uint32 const victimDefense = victim->GetDefenseSkillValue();
         uint32 const attackerMeleeSkill = GetMaxSkillValueForLevel();
 
         chance *= attackerMeleeSkill / float(victimDefense) * 0.16f;
 
-        // -probability is between 0% and 40%
-        RoundToInterval(chance, 0.0f, 40.0f);
+        // -probability is between 0% and 70%
+        RoundToInterval(chance, 0.0f, 70.0f);
         if (roll_chance_f(chance))
             CastSpell(victim, 1604 /*SPELL_DAZED*/, true);
     }
