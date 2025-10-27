@@ -11970,6 +11970,8 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
     UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_ITEM, pItem->GetEntry());
     UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_EPIC_ITEM, slot, pItem->GetEntry());
 
+    UpdateSpeed();
+
     return pItem;
 }
 
@@ -11995,6 +11997,9 @@ void Player::QuickEquipItem(uint16 pos, Item* pItem)
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_ITEM, pItem->GetEntry());
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_EPIC_ITEM, slot, pItem->GetEntry());
     }
+
+    UpdateSpeed();
+
 }
 
 void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
@@ -12124,6 +12129,9 @@ void Player::RemoveItem(uint8 bag, uint8 slot, bool update)
         if (IsInWorld() && update)
             pItem->SendUpdateToPlayer(this);
     }
+
+    UpdateSpeed();
+
 }
 
 // Common operation need to remove item from inventory without delete in trade, auction, guild bank, mail....

@@ -117,9 +117,11 @@ bool Player::UpdateStats(Stats stat)
     {
         case STAT_STRENGTH:
             UpdateShieldBlockValue();
+            UpdateSpeed();
             break;
         case STAT_AGILITY:
             UpdateArmor();
+            UpdateSpeed();
             UpdateAllCritPercentages();
             UpdateDodgePercentage();
             break;
@@ -236,6 +238,8 @@ bool Player::UpdateAllStats()
     RecalculateRating(CR_ARMOR_PENETRATION);
     UpdateAllResistances();
 
+    UpdateSpeed();
+
     return true;
 }
 
@@ -284,6 +288,8 @@ void Player::UpdateArmor()
     Pet* pet = GetPet();
     if (pet)
         pet->UpdateArmor();
+
+    UpdateSpeed();
 }
 
 float Player::GetHealthBonusFromStamina()
