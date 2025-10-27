@@ -1484,19 +1484,19 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
         !victim->HasInArc(float(M_PI), this) && !victim->IsVehicle())
     {
         // 50% base chance
+        // Add attacker's level * 5
+        // Subtract victim's level * 5
+        // Cap between 5% and 95% chance
+        // No need to check attack/defense skills
+        // since this is factored into the hit chance already
         float chance = 50.0f;
+        chance += GetLevel() * 5.0f;
+        chance -= victim->GetLevel() * 5.0f;
+        if (chance < 5.0f)
+            chance = 5.0f;
+        if (chance > 95.0f)
+            chance = 95.0f;
 
-        // there is a newbie protection, at level 10 just 7% base chance; assuming linear function
-        //if (victim->GetLevel() < 30)
-            //chance = 0.65f * victim->GetLevel() + 0.5f;
-
-        uint32 const victimDefense = victim->GetDefenseSkillValue();
-        uint32 const attackerMeleeSkill = GetMaxSkillValueForLevel();
-
-        chance *= attackerMeleeSkill / float(victimDefense) * 0.16f;
-
-        // -probability is between 0% and 70%
-        RoundToInterval(chance, 0.0f, 70.0f);
         if (roll_chance_f(chance))
             CastSpell(victim, 1604 /*SPELL_DAZED*/, true);
     }
