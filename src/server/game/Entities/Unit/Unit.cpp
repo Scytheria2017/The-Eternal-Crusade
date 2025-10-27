@@ -8669,7 +8669,7 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
                     float agi = GetStat(STAT_AGILITY);
                     float str = GetStat(STAT_STRENGTH);
                     float arm = GetFlatModifierValue(UNIT_MOD_ARMOR, BASE_VALUE);
-                    float enc = 1.0f - (0.15f * cmath::tanh(0.1f * ((agi / lvl) - (10.0f * arm / str))));
+                    float enc = 1.0f - (0.15f * std::tanh(0.1f * ((agi / lvl) - (10.0f * arm / str))));
                     speed *= enc;
                 default:
                     break;
