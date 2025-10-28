@@ -24363,7 +24363,6 @@ void Player::InitGlyphsForLevel()
             if (gs->Tooltip)
                 SetGlyphSlot(gs->Tooltip - 1, gs->ID);
 
-    uint8 level = GetLevel();
     uint32 value = 0;
     SetUInt32Value(PLAYER_GLYPHS_ENABLED, value);
 }
@@ -24732,7 +24731,7 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
 uint32 Player::CalculateTalentsPoints() const
 {
     uint32 baseForLevel = GetLevel() - 1;
-    return uint32(talentPointsForLevel);
+    return uint32(baseForLevel);
 }
 
 bool Player::CanFlyInZone(uint32 mapid, uint32 zone, SpellInfo const* bySpell) const
