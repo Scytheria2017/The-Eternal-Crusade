@@ -1632,15 +1632,13 @@ void Unit::HandleEmoteCommand(Emote emoteId)
     if (armor < 0.0f)
         armor = 0.0f;
 
-    float levelModifier = attacker ? attacker->GetLevel() : attackerLevel;
-    if (levelModifier > 59.f)
-        levelModifier = levelModifier + 4.5f * (levelModifier - 59.f);
+    // Let's say armor caps at 1000 for a level 20 character
+    float armcap = 1000.0f;
+    armor /= armcap;
+    armor *= 0.75f;
 
-    float damageReduction = 0.1f * armor / (8.5f * levelModifier + 40.f);
-    damageReduction /= (1.0f + damageReduction);
-
-    RoundToInterval(damageReduction, 0.f, 0.75f);
-    return uint32(std::ceil(std::max(damage * (1.0f - damageReduction), 0.0f)));
+    RoundToInterval(armor, 0.f, 0.75f);
+    return uint32(std::ceil(std::max(damage * (1.0f - armor), 0.0f)));
 }
 
 /*static*/ uint32 Unit::CalcSpellResistedDamage(Unit const* attacker, Unit* victim, uint32 damage, SpellSchoolMask schoolMask, SpellInfo const* spellInfo)
