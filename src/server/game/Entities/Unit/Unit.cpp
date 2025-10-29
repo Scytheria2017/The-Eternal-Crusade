@@ -1633,7 +1633,7 @@ void Unit::HandleEmoteCommand(Emote emoteId)
         armor = 0.0f;
 
     // Let's say armor caps at 1000 for a level 20 character
-    float armcap = 1000.0f;
+    float armcap = 1200.0f;
     armor /= armcap;
     armor *= 0.75f;
 
