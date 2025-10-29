@@ -365,106 +365,24 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
 
     if (ranged)
     {
-        switch (GetClass())
+        val2 = level * 1.5f + GetStat(STAT_AGILITY) - 10.0f;
+
+        switch (GetShapeshiftForm())
         {
-            case CLASS_HUNTER:
-                val2 = level * 2.0f + GetStat(STAT_AGILITY) - 10.0f;
+            case FORM_CAT:
+            case FORM_BEAR:
+            case FORM_DIREBEAR:
+                val2 = 0.0f;
+            default:
                 break;
-            case CLASS_ROGUE:
-                val2 = level + GetStat(STAT_AGILITY) - 10.0f;
-                break;
-            case CLASS_WARRIOR:
-                val2 = level + GetStat(STAT_AGILITY) - 10.0f;
-                break;
-            case CLASS_DRUID:
-                switch (GetShapeshiftForm())
-                {
-                    case FORM_CAT:
-                    case FORM_BEAR:
-                    case FORM_DIREBEAR:
-                        val2 = 0.0f; break;
-                    default:
-                        val2 = GetStat(STAT_AGILITY) - 10.0f; break;
-                }
-                break;
-            default: val2 = GetStat(STAT_AGILITY) - 10.0f; break;
         }
     }
     else
     {
-        switch (GetClass())
-        {
-            case CLASS_WARRIOR:
-                val2 = level * 3.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
-                break;
-            case CLASS_PALADIN:
-                val2 = level * 3.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
-                break;
-            case CLASS_DEATH_KNIGHT:
-                val2 = level * 3.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
-                break;
-            case CLASS_ROGUE:
-                val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
-                break;
-            case CLASS_HUNTER:
-                val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
-                break;
-            case CLASS_SHAMAN:
-                val2 = level * 2.0f + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY) - 20.0f;
-                break;
-            case CLASS_DRUID:
-            {
-                // Check if Predatory Strikes is skilled
-                float levelBonus = 0.0f;
-                float weaponBonus = 0.0f;
-                if (IsInFeralForm())
-                {
-                    if (AuraEffect const* levelMod = GetAuraEffect(SPELL_AURA_DUMMY, SPELLFAMILY_DRUID, 1563, EFFECT_0))
-                        levelBonus = CalculatePct(1.0f, levelMod->GetAmount());
-
-                    // = 0 if removing the weapon, do not calculate bonus (uses template)
-                    if (m_baseFeralAP)
-                    {
-                        if (Item const* weapon = m_items[EQUIPMENT_SLOT_MAINHAND])
-                        {
-                            if (AuraEffect const* weaponMod = GetAuraEffect(SPELL_AURA_DUMMY, SPELLFAMILY_DRUID, 1563, EFFECT_1))
-                            {
-                                ItemTemplate const* itemTemplate = weapon->GetTemplate();
-                                int32 bonusAP = itemTemplate->GetTotalAPBonus() + m_baseFeralAP;
-                                weaponBonus = CalculatePct(static_cast<float>(bonusAP), weaponMod->GetAmount());
-                            }
-                        }
-                    }
-                }
-
-                switch (GetShapeshiftForm())
-                {
-                    case FORM_CAT:
-                        val2 = GetLevel() * levelBonus + GetStat(STAT_STRENGTH) * 2.0f + GetStat(STAT_AGILITY) - 20.0f + weaponBonus + m_baseFeralAP;
-                        break;
-                    case FORM_BEAR:
-                    case FORM_DIREBEAR:
-                        val2 = GetLevel() * levelBonus + GetStat(STAT_STRENGTH) * 2.0f - 20.0f + weaponBonus + m_baseFeralAP;
-                        break;
-                    case FORM_MOONKIN:
-                        val2 = GetStat(STAT_STRENGTH) * 2.0f - 20.0f + m_baseFeralAP;
-                        break;
-                    default:
-                        val2 = GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
-                        break;
-                }
-                break;
-            }
-            case CLASS_MAGE:
-                val2 = GetStat(STAT_STRENGTH) - 10.0f;
-                break;
-            case CLASS_PRIEST:
-                val2 = GetStat(STAT_STRENGTH) - 10.0f;
-                break;
-            case CLASS_WARLOCK:
-                val2 = GetStat(STAT_STRENGTH) - 10.0f;
-                break;
-        }
+        val2 = level * 2.0f + GetStat(STAT_STRENGTH) * 2.0f - 20.0f;
+        
+        if (IsInFeralForm())
+            val2 = level * 2.0f + GetStat(STAT_STRENGTH) * 3.0f - 20.0f;
     }
 
     SetStatFlatModifier(unitMod, BASE_VALUE, val2);
@@ -527,8 +445,8 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
         UpdateDamagePhysical(BASE_ATTACK);
         if (CanDualWield() && haveOffhandWeapon())           //allow update offhand damage only if player knows DualWield Spec and has equipped offhand weapon
             UpdateDamagePhysical(OFF_ATTACK);
-        if (GetClass() == CLASS_SHAMAN || GetClass() == CLASS_PALADIN)                      // mental quickness
-            UpdateSpellDamageAndHealingBonus();
+
+        UpdateSpellDamageAndHealingBonus();
 
         if (pet && (pet->IsPetGhoul() || pet->IsRisenAlly())) // At melee attack power change for DK pet
             pet->UpdateAttackPowerAndDamage();
@@ -704,17 +622,17 @@ void Player::UpdateAllCritPercentages()
 
 float const m_diminishing_k[MAX_CLASSES] =
 {
-    0.9560f,  // Warrior
-    0.9560f,  // Paladin
-    0.9880f,  // Hunter
-    0.9880f,  // Rogue
-    0.9830f,  // Priest
-    0.9560f,  // DK
-    0.9880f,  // Shaman
-    0.9830f,  // Mage
-    0.9830f,  // Warlock
+    0.97f,  // Warrior
+    0.97f,  // Paladin
+    0.97f,  // Hunter
+    0.97f,  // Rogue
+    0.97f,  // Priest
+    0.97f,  // DK
+    0.97f,  // Shaman
+    0.97f,  // Mage
+    0.97f,  // Warlock
     0.0f,     // ??
-    0.9720f   // Druid
+    0.97f   // Druid
 };
 
 // helper function
@@ -768,17 +686,17 @@ float Player::GetMissPercentageFromDefense() const
 
 float const parry_cap[MAX_CLASSES] =
 {
-    47.003525f,     // Warrior
-    47.003525f,     // Paladin
-    145.560408f,    // Hunter
-    145.560408f,    // Rogue
-    0.0f,           // Priest
-    47.003525f,     // DK
-    145.560408f,    // Shaman
-    0.0f,           // Mage
-    0.0f,           // Warlock
+    50.0f,     // Warrior
+    50.0f,     // Paladin
+    50.0f,    // Hunter
+    50.0f,    // Rogue
+    50.0f,           // Priest
+    50.0f,     // DK
+    50.0f,    // Shaman
+    50.0f,           // Mage
+    50.0f,           // Warlock
     0.0f,           // ??
-    0.0f            // Druid
+    50.0f            // Druid
 };
 
 void Player::UpdateParryPercentage()
@@ -810,17 +728,17 @@ void Player::UpdateParryPercentage()
 
 float const dodge_cap[MAX_CLASSES] =
 {
-    88.129021f,     // Warrior
-    88.129021f,     // Paladin
-    145.560408f,    // Hunter
-    145.560408f,    // Rogue
-    150.375940f,    // Priest
-    88.129021f,     // DK
-    145.560408f,    // Shaman
-    150.375940f,    // Mage
-    150.375940f,    // Warlock
+    100.0f,     // Warrior
+    100.0f,      // Paladin
+    100.0f,     // Hunter
+    100.0f,     // Rogue
+    100.0f,    // Priest
+    100.0f,      // DK
+    100.0f,     // Shaman
+    100.0f,     // Mage
+    100.0f,    // Warlock
     0.0f,           // ??
-    116.890707f     // Druid
+    100.0f,     // Druid
 };
 
 void Player::UpdateDodgePercentage()
