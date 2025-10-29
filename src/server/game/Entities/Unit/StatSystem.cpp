@@ -1205,25 +1205,19 @@ bool Guardian::UpdateStats(Stats stat)
     }
     else if (stat == STAT_STAMINA)
     {
-        if (owner->GetClass() == CLASS_WARLOCK && IsPet())
+        if (IsPet())
         {
             ownersBonus = CalculatePct(owner->GetStat(STAT_STAMINA), 75);
             value += ownersBonus;
-        }
-        else
-        {
             mod = 0.45f;
-            if (IsPet())
-            {
-                PetSpellMap::const_iterator itr = (ToPet()->m_spells.find(62758)); // Wild Hunt rank 1
-                if (itr == ToPet()->m_spells.end())
-                    itr = ToPet()->m_spells.find(62762);                            // Wild Hunt rank 2
+            PetSpellMap::const_iterator itr = (ToPet()->m_spells.find(62758)); // Wild Hunt rank 1
+            if (itr == ToPet()->m_spells.end())
+                itr = ToPet()->m_spells.find(62762);                            // Wild Hunt rank 2
 
-                if (itr != ToPet()->m_spells.end())                                 // If pet has Wild Hunt
-                {
-                    SpellInfo const* spellInfo = sSpellMgr->AssertSpellInfo(itr->first); // Then get the SpellProto and add the dummy effect value
-                    AddPct(mod, spellInfo->GetEffect(EFFECT_0).CalcValue());
-                }
+            if (itr != ToPet()->m_spells.end())                                 // If pet has Wild Hunt
+            {
+                SpellInfo const* spellInfo = sSpellMgr->AssertSpellInfo(itr->first); // Then get the SpellProto and add the dummy effect value
+                AddPct(mod, spellInfo->GetEffect(EFFECT_0).CalcValue());
             }
             ownersBonus = float(owner->GetStat(stat)) * mod;
             value += ownersBonus;
@@ -1232,11 +1226,8 @@ bool Guardian::UpdateStats(Stats stat)
                                                             //warlock's and mage's pets gain 30% of owner's intellect
     else if (stat == STAT_INTELLECT)
     {
-        if (owner->GetClass() == CLASS_WARLOCK || owner->GetClass() == CLASS_MAGE)
-        {
-            ownersBonus = CalculatePct(owner->GetStat(stat), 30);
-            value += ownersBonus;
-        }
+        ownersBonus = CalculatePct(owner->GetStat(stat), 30);
+        value += ownersBonus;
     }
 /*
     else if (stat == STAT_STRENGTH)

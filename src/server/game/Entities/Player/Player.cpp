@@ -5047,8 +5047,7 @@ void Player::UpdateDamageDoneMods(WeaponAttackType attackType, int32 skipEnchant
                     amount += enchantmentEntry->EffectPointsMin[i];
                     break;
                 case ITEM_ENCHANTMENT_TYPE_TOTEM:
-                    if (GetClass() == CLASS_SHAMAN)
-                        amount += enchantmentEntry->EffectPointsMin[i] * item->GetTemplate()->Delay / 1000.0f;
+                    amount += enchantmentEntry->EffectPointsMin[i] * item->GetTemplate()->Delay / 1000.0f;
                     break;
                 default:
                     break;
@@ -5670,12 +5669,9 @@ void Player::UpdateCombatSkills(Unit* victim, WeaponAttackType attType, bool def
     if (skilldif <= 0)
         return;
 
-    float chance = float(3 * lvldif * skilldif) / plevel;
-    if (!defense)
-        if (GetClass() == CLASS_WARRIOR || GetClass() == CLASS_ROGUE)
-            chance += chance * 0.02f * GetStat(STAT_INTELLECT);
+    float chance = (float(3 * lvldif * skilldif) / plevel) / 10.0f;
 
-    chance = chance < 1.0f ? 1.0f : chance;                 //minimum chance to increase skill is 1%
+    chance = chance < 0.1f ? 0.1f : chance;                 //minimum chance to increase skill is 0.1%
 
     if (roll_chance_f(chance))
     {
@@ -7379,22 +7375,6 @@ void Player::_ApplyItemBonuses(ItemTemplate const* proto, uint8 slot, bool apply
     WeaponAttackType attType = Player::GetAttackBySlot(slot);
     if (attType != MAX_ATTACK)
         _ApplyWeaponDamage(slot, proto, apply);
-
-    // Druids get feral AP bonus from weapon dps (also use DPS from ScalingStatValue)
-    if (GetClass() == CLASS_DRUID)
-    {
-        int32 dpsMod = 0;
-        int32 feral_bonus = 0;
-        if (ssv)
-        {
-            dpsMod = ssv->getDPSMod(proto->ScalingStatValue);
-            feral_bonus += ssv->getFeralBonus(proto->ScalingStatValue);
-        }
-
-        feral_bonus += proto->getFeralBonus(dpsMod);
-        if (feral_bonus)
-            ApplyFeralAPBonus(feral_bonus, apply);
-    }
 }
 
 void Player::_ApplyWeaponDamage(uint8 slot, ItemTemplate const* proto, bool apply)
