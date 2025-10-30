@@ -2502,7 +2502,7 @@ void Player::InitTalentForLevel()
 {
     uint8 level = GetLevel();
     // talents base at level diff (talents = level - 9 but some can be used already)
-    if (level < 10)
+    if (level < 2)
     {
         // Remove all talent points
         if (GetUsedTalentCount() > 0)                           // Free any used talents
@@ -24710,7 +24710,7 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
 
 uint32 Player::CalculateTalentsPoints() const
 {
-    uint32 baseForLevel = GetLevel() - 9;
+    uint32 baseForLevel = GetLevel() - 1;
     if (baseForLevel < 0)
         baseForLevel = 0;
     return uint32(baseForLevel * 5);
