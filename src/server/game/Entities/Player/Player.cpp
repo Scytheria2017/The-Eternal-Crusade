@@ -24710,10 +24710,10 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
 
 uint32 Player::CalculateTalentsPoints() const
 {
-    uint32 baseForLevel = GetLevel() - 1;
+    uint32 baseForLevel = GetLevel() - 9;
     if (baseForLevel < 0)
         baseForLevel = 0;
-    return uint32(baseForLevel * 5);
+    return uint32(baseForLevel);
 }
 
 bool Player::CanFlyInZone(uint32 mapid, uint32 zone, SpellInfo const* bySpell) const
