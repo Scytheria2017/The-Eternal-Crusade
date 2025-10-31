@@ -2502,7 +2502,7 @@ void Player::InitTalentForLevel()
 {
     uint8 level = GetLevel();
     // talents base at level diff (talents = level - 9 but some can be used already)
-    if (level < 2)
+    if (level < 10)
     {
         // Remove all talent points
         if (GetUsedTalentCount() > 0)                           // Free any used talents
