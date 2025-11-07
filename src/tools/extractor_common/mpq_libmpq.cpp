@@ -141,9 +141,31 @@ struct ArchiveData
     bool Required;
 };
 
-constexpr std::array<ArchiveData, 11> Archives =
+constexpr std::array<ArchiveData, 32> Archives =
 {{
-    { .NamePattern = "{installDir}/Data/patch-?.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-Z.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-S.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-R.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-Q.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-P.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-O.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-N.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-M.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-L.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-K.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-J.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-I.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-H.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-G.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-F.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-E.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-D.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-C.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-B.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-A.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-3.MPQ", .Required = true },
+    { .NamePattern = "{installDir}/Data/patch-2.MPQ", .Required = true },
+    //{ .NamePattern = "{installDir}/Data/patch-?.MPQ", .Required = true },
     { .NamePattern = "{installDir}/Data/{locale}/patch-{locale}-?.MPQ", .Required = true },
     { .NamePattern = "{installDir}/Data/patch.MPQ", .Required = true },
     { .NamePattern = "{installDir}/Data/{locale}/patch-{locale}.MPQ", .Required = true },
