@@ -15,26 +15,24 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
-
-#include "ScriptMgr.h"
 #include "scholomance.h"
+#include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 
 enum PolkeltSpells
 {
-    SPELL_VOLATILE_INFECTION    = 18149,
-    SPELL_NOXIOUS_CATALYST      = 18151,
-    SPELL_CORROSIVE_ACID        = 8245
+    SPELL_VOLATILE_INFECTION    = 24928,
+    SPELL_DARK_PLAGUE           = 18270,
+    SPELL_CORROSIVE_ACID        = 23313,
+    SPELL_NOXIOUS_CATALYST      = 18151
 };
 
 enum PolkeltEvents
 {
-    EVENT_VOLATILE_INFECTION    = 1,
-    EVENT_NOXIOUS_CATALYST,
-    EVENT_CORROSIVE_ACID
+    EVENT_VOLATILE_INFECTION = 1,
+    EVENT_DARK_PLAGUE,
+    EVENT_CORROSIVE_ACID,
+    EVENT_NOXIOUS_CATALYST
 };
 
 // 10901 - Lorekeeper Polkelt
@@ -45,10 +43,10 @@ struct boss_lorekeeper_polkelt : public BossAI
     void JustEngagedWith(Unit* who) override
     {
         BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_VOLATILE_INFECTION, 15s, 20s);
-        events.ScheduleEvent(EVENT_NOXIOUS_CATALYST, 10s, 20s);
-        events.ScheduleEvent(EVENT_CORROSIVE_ACID, 20s, 30s);
+        events.ScheduleEvent(EVENT_VOLATILE_INFECTION, 38s);
+        events.ScheduleEvent(EVENT_DARK_PLAGUE, 8s);
+        events.ScheduleEvent(EVENT_CORROSIVE_ACID, 45s);
+        events.ScheduleEvent(EVENT_NOXIOUS_CATALYST, 35s);
     }
 
     void UpdateAI(uint32 diff) override
@@ -67,15 +65,19 @@ struct boss_lorekeeper_polkelt : public BossAI
             {
                 case EVENT_VOLATILE_INFECTION:
                     DoCastVictim(SPELL_VOLATILE_INFECTION);
-                    events.Repeat(10s, 20s);
+                    events.Repeat(32s);
                     break;
-                case EVENT_NOXIOUS_CATALYST:
-                    DoCastVictim(SPELL_NOXIOUS_CATALYST);
-                    events.Repeat(20s, 30s);
+                case EVENT_DARK_PLAGUE:
+                    DoCastVictim(SPELL_DARK_PLAGUE);
+                    events.Repeat(8s);
                     break;
                 case EVENT_CORROSIVE_ACID:
                     DoCastSelf(SPELL_CORROSIVE_ACID);
-                    events.Repeat(30s, 40s);
+                    events.Repeat(25s);
+                    break;
+                case EVENT_NOXIOUS_CATALYST:
+                    DoCastVictim(SPELL_NOXIOUS_CATALYST);
+                    events.Repeat(38s);
                     break;
                 default:
                     break;

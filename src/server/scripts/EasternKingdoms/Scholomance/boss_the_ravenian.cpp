@@ -15,25 +15,21 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
-
-#include "ScriptMgr.h"
 #include "scholomance.h"
+#include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 
 enum RavenianSpells
 {
     SPELL_TRAMPLE                   = 15550,
-    SPELL_CLEAVE                    = 40504,
-    SPELL_SUNDERING_CLEAVE          = 17963,
-    SPELL_KNOCK_AWAY                = 18670
+    SPELL_CLEAVE                    = 20691,
+    SPELL_SUNDERING_CLEAVE          = 25174,
+    SPELL_KNOCK_AWAY                = 10101
 };
 
 enum RavenianEvents
 {
-    EVENT_TRAMPLE                   = 1,
+    EVENT_TRAMPLE = 1,
     EVENT_CLEAVE,
     EVENT_SUNDERING_CLEAVE,
     EVENT_KNOCK_AWAY
@@ -47,11 +43,10 @@ struct boss_the_ravenian : public BossAI
     void JustEngagedWith(Unit* who) override
     {
         BossAI::JustEngagedWith(who);
-
-        events.ScheduleEvent(EVENT_TRAMPLE, 8s, 15s);
-        events.ScheduleEvent(EVENT_CLEAVE, 10s, 15s);
-        events.ScheduleEvent(EVENT_SUNDERING_CLEAVE, 20s, 30s);
-        events.ScheduleEvent(EVENT_KNOCK_AWAY, 5s, 10s);
+        events.ScheduleEvent(EVENT_TRAMPLE, 24s);
+        events.ScheduleEvent(EVENT_CLEAVE, 15s);
+        events.ScheduleEvent(EVENT_SUNDERING_CLEAVE, 40s);
+        events.ScheduleEvent(EVENT_KNOCK_AWAY, 32s);
     }
 
     void UpdateAI(uint32 diff) override
@@ -70,19 +65,19 @@ struct boss_the_ravenian : public BossAI
             {
                 case EVENT_TRAMPLE:
                     DoCastSelf(SPELL_TRAMPLE);
-                    events.Repeat(8s, 15s);
+                    events.Repeat(10s);
                     break;
                 case EVENT_CLEAVE:
                     DoCastVictim(SPELL_CLEAVE);
-                    events.Repeat(10s, 15s);
+                    events.Repeat(7s);
                     break;
                 case EVENT_SUNDERING_CLEAVE:
                     DoCastVictim(SPELL_SUNDERING_CLEAVE);
-                    events.Repeat(20s, 30s);
+                    events.Repeat(20s);
                     break;
                 case EVENT_KNOCK_AWAY:
                     DoCastVictim(SPELL_KNOCK_AWAY);
-                    events.Repeat(8s, 15s);
+                    events.Repeat(12s);
                     break;
                 default:
                     break;

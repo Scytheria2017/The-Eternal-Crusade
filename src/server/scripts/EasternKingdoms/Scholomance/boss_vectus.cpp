@@ -15,28 +15,28 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Timers requires to be revisited
- */
-
-#include "ScriptMgr.h"
 #include "scholomance.h"
+#include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+
+enum VectusTexts
+{
+    EMOTE_FRENZY                 = 0
+};
 
 enum VectusSpells
 {
-    // Passive
-    SPELL_FIRE_SHIELD            = 13377,
-
-    // Combat
+    SPELL_FLAMESTRIKE            = 18399,
     SPELL_BLAST_WAVE             = 16046,
-    SPELL_FLAMESTRIKE            = 18399
+    SPELL_FIRE_SHIELD            = 19626,
+    SPELL_FRENZY                 = 8269  // 28371
 };
 
 enum VectusEvents
 {
-    EVENT_BLAST_WAVE             = 1,
-    EVENT_FLAMESTRIKE
+    EVENT_FIRE_SHIELD = 1,
+    EVENT_BLAST_WAVE,
+    EVENT_FRENZY
 };
 
 // 10432 - Vectus
@@ -47,14 +47,18 @@ struct boss_vectus : public ScriptedAI
     void Reset() override
     {
         _events.Reset();
-
-        DoCastSelf(SPELL_FIRE_SHIELD);
     }
 
     void JustEngagedWith(Unit* /*who*/) override
     {
-        _events.ScheduleEvent(EVENT_BLAST_WAVE, 15s, 25s);
-        _events.ScheduleEvent(EVENT_FLAMESTRIKE, 10s, 15s);
+        _events.ScheduleEvent(EVENT_FIRE_SHIELD, 2s);
+        _events.ScheduleEvent(EVENT_BLAST_WAVE, 14s);
+    }
+
+    void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
+    {
+        if (!me->HasAura(SPELL_FRENZY) && me->HealthBelowPctDamaged(25, damage))
+            _events.ScheduleEvent(EVENT_FRENZY, 0s);
     }
 
     void UpdateAI(uint32 diff) override
@@ -71,14 +75,18 @@ struct boss_vectus : public ScriptedAI
         {
             switch (eventId)
             {
+                case EVENT_FIRE_SHIELD:
+                    DoCastSelf(SPELL_FIRE_SHIELD);
+                    _events.Repeat(90s);
+                    break;
                 case EVENT_BLAST_WAVE:
                     DoCastSelf(SPELL_BLAST_WAVE);
-                    _events.Repeat(20s, 30s);
+                    _events.Repeat(12s);
                     break;
-                case EVENT_FLAMESTRIKE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
-                        DoCast(target, SPELL_FLAMESTRIKE);
-                    _events.Repeat(10s, 15s);
+                case EVENT_FRENZY:
+                    DoCastSelf(SPELL_FRENZY);
+                    Talk(EMOTE_FRENZY);
+                    _events.Repeat(24s);
                     break;
                 default:
                     break;

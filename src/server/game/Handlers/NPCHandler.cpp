@@ -58,11 +58,6 @@ void WorldSession::HandleTabardVendorActivateOpcode(WorldPacket& recvData)
     ObjectGuid guid;
     recvData >> guid;
 
-#ifndef DISABLE_DRESSNPCS_CORESOUNDS
-    if (guid.IsAnyTypeCreature())
-        if (Creature* creature = _player->GetMap()->GetCreature(guid))
-            creature->SendMirrorSound(_player, 0);
-#endif
     Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_TABARDDESIGNER);
     if (!unit)
     {
@@ -99,10 +94,6 @@ void WorldSession::HandleTrainerListOpcode(WorldPackets::NPC::Hello& packet)
         TC_LOG_DEBUG("network", "WorldSession: SendTrainerList - {} not found or you can not interact with him.", packet.Unit.ToString());
         return;
     }
-
-#ifndef DISABLE_DRESSNPCS_CORESOUNDS
-    npc->SendMirrorSound(_player, 0);
-#endif
 
     SendTrainerList(npc);
 }
@@ -158,11 +149,6 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket& recvData)
     ObjectGuid guid;
     recvData >> guid;
 
-#ifndef DISABLE_DRESSNPCS_CORESOUNDS
-    if (guid.IsAnyTypeCreature())
-        if (Creature* creature = _player->GetMap()->GetCreature(guid))
-            creature->SendMirrorSound(_player, 0);
-#endif
     Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_GOSSIP);
     if (!unit)
     {
@@ -302,11 +288,6 @@ void WorldSession::HandleRequestStabledPets(WorldPacket& recvData)
 
     recvData >> npcGUID;
 
-#ifndef DISABLE_DRESSNPCS_CORESOUNDS
-    if (npcGUID.IsAnyTypeCreature())
-        if (Creature* creature = _player->GetMap()->GetCreature(npcGUID))
-            creature->SendMirrorSound(_player, 0);
-#endif
     if (!CheckStableMaster(npcGUID))
         return;
 
