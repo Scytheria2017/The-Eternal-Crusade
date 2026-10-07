@@ -1095,13 +1095,14 @@ void SpellMgr::LoadSpellLearnSpells()
             continue;
         }
 
-        if (!GetSpellInfo(node.spell))
+        SpellInfo const* learnedSpellInfo = GetSpellInfo(node.spell);
+        if (!learnedSpellInfo)
         {
             TC_LOG_ERROR("sql.sql", "The spell {} listed in `spell_learn_spell` learning non-existing spell {}.", spell_id, node.spell);
             continue;
         }
 
-        if (GetTalentSpellCost(node.spell))
+        if (learnedSpellInfo->HasAttribute(SPELL_ATTR0_CU_IS_TALENT))
         {
             TC_LOG_ERROR("sql.sql", "The spell {} listed in `spell_learn_spell` attempts learning talent spell {}, skipped.", spell_id, node.spell);
             continue;
@@ -1136,7 +1137,7 @@ void SpellMgr::LoadSpellLearnSpells()
                 // talent or passive spells or skill-step spells auto-cast and not need dependent learning,
                 // pet teaching spells must not be dependent learning (cast)
                 // other required explicit dependent learning
-                dbc_node.autoLearned = spellEffectInfo.TargetA.GetTarget() == TARGET_UNIT_PET || GetTalentSpellCost(spell) > 0 || entry->IsPassive() || entry->HasEffect(SPELL_EFFECT_SKILL_STEP);
+                dbc_node.autoLearned = spellEffectInfo.TargetA.GetTarget() == TARGET_UNIT_PET || entry->HasAttribute(SPELL_ATTR0_CU_IS_TALENT) || entry->IsPassive() || entry->HasEffect(SPELL_EFFECT_SKILL_STEP);
 
                 SpellLearnSpellMapBounds db_node_bounds = GetSpellLearnSpellMapBounds(spell);
 
@@ -1183,7 +1184,7 @@ void SpellMgr::LoadSpellTargetPositions()
     {
         Field* fields = result->Fetch();
 
-        uint32 Spell_ID = fields[0].GetUInt32();
+        uint32 spellId = fields[0].GetUInt32();
         SpellEffIndex effIndex = SpellEffIndex(fields[1].GetUInt8());
 
         SpellTargetPosition st;
@@ -1197,32 +1198,32 @@ void SpellMgr::LoadSpellTargetPositions()
         MapEntry const* mapEntry = sMapStore.LookupEntry(st.target_mapId);
         if (!mapEntry)
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: {}, effIndex: {}) target map (ID: {}) does not exist in `Map.dbc`.", Spell_ID, effIndex, st.target_mapId);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: {}, EffectIndex: {}) is using a non-existant MapID (ID: {}).", spellId, effIndex, st.target_mapId);
             continue;
         }
 
         if (st.target_X==0 && st.target_Y==0 && st.target_Z==0)
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: {}, effIndex: {}) target coordinates not provided.", Spell_ID, effIndex);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: {}, EffectIndex: {}): target coordinates not provided.", spellId, effIndex);
             continue;
         }
 
-        SpellInfo const* spellInfo = GetSpellInfo(Spell_ID);
+        SpellInfo const* spellInfo = GetSpellInfo(spellId);
         if (!spellInfo)
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: {}) listed in `spell_target_position` does not exist.", Spell_ID);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: {}) listed in `spell_target_position` does not exist.", spellId);
             continue;
         }
 
         if (spellInfo->GetEffect(effIndex).TargetA.GetTarget() == TARGET_DEST_DB || spellInfo->GetEffect(effIndex).TargetB.GetTarget() == TARGET_DEST_DB)
         {
-            std::pair<uint32, SpellEffIndex> key = std::make_pair(Spell_ID, effIndex);
+            std::pair<uint32, SpellEffIndex> key = std::make_pair(spellId, effIndex);
             mSpellTargetPositions[key] = st;
             ++count;
         }
         else
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: {}, effIndex: {}) listed in `spell_target_position` does not have a target TARGET_DEST_DB (17).", Spell_ID, effIndex);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: {}, EffectIndex: {}) listed in `spell_target_position` does not have target TARGET_DEST_DB (17).", spellId, effIndex);
             continue;
         }
 
@@ -1230,38 +1231,18 @@ void SpellMgr::LoadSpellTargetPositions()
 
     /*
     // Check all spells
-    for (uint32 i = 1; i < GetSpellInfoStoreSize; ++i)
+    for (SpellInfo const* spellInfo : mSpellInfoMap)
     {
-        SpellInfo const* spellInfo = GetSpellInfo(i);
-        if (!spellInfo)
-            continue;
+        for (SpellEffectInfo const& effect : spellInfo->GetEffects())
+        {
+            if (effect.TargetA.GetTarget() != TARGET_DEST_DB && effect.TargetB.GetTarget() != TARGET_DEST_DB)
+                continue;
 
-        bool found = false;
-        for (int j = 0; j < MAX_SPELL_EFFECTS; ++j)
-        {
-            switch (spellInfo->Effects[j].TargetA)
-            {
-                case TARGET_DEST_DB:
-                    found = true;
-                    break;
-            }
-            if (found)
-                break;
-            switch (spellInfo->Effects[j].TargetB)
-            {
-                case TARGET_DEST_DB:
-                    found = true;
-                    break;
-            }
-            if (found)
-                break;
+            if (!GetSpellTargetPosition(spellInfo->Id, effect.EffectIndex))
+                TC_LOG_DEBUG("spells", "Spell (Id: {}, EffectIndex: {}) does not have record in `spell_target_position`.", spellInfo.Id, effect.EffectIndex);
         }
-        if (found)
-        {
-            if (!sSpellMgr->GetSpellTargetPosition(i))
-                TC_LOG_DEBUG("spells", "Spell (ID: {}) does not have a record in `spell_target_position`.", i);
-        }
-    }*/
+    }
+    */
 
     TC_LOG_INFO("server.loading", ">> Loaded {} spell teleport coordinates in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
@@ -2834,6 +2815,9 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
         }
 
         spellInfo->_InitializeSpellPositivity();
+
+        if (GetTalentSpellPos(spellInfo->Id))
+            spellInfo->AttributesCu |= SPELL_ATTR0_CU_IS_TALENT;
 
         if (spellInfo->SpellVisual[0] == 3879)
             spellInfo->AttributesCu |= SPELL_ATTR0_CU_CONE_BACK;
